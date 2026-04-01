@@ -1,0 +1,19 @@
+Copyright (c) 2026 Christian Houser. All Rights Reserved.
+
+This repository and all its contents are private and confidential.
+
+### License Summary
+- This is NOT an open-source project.
+- You are granted a limited, non-transferable, revocable license to view and test this software **only** for the purpose of providing feedback to the developer.
+- You may NOT:
+  - Distribute, share, fork, copy, or screenshot any part of this repository
+  - Make this project public
+  - Use any spell text or assets outside of private testing
+  - Remove or alter this license or any disclaimers
+
+All rights to the code, design, and any included content remain reserved.
+
+*Tales of the Valiant* and ToV are trademarks of Open Design LLC.  
+This project is unofficial and not affiliated with Kobold Press.
+
+For licensing, partnership, or distribution inquiries, please contact the developer.
