@@ -908,6 +908,7 @@ function CharacterDetail({character, onBack, onUpdate}) {
   saveRef.current=(updates)=>{if(onUpdate)onUpdate({...character,usedSlots,knownSpells,preparedSpells,spellsPreparedCount,spellAttack,spellSaveDC,roteSpells,...updates});};
 
   useEffect(()=>{document.body.style.overflow='hidden';return()=>{document.body.style.overflow='';};},[]);
+  useEffect(()=>{ if(viewingSpell){ return pushBack(()=>setViewingSpell(null)); } },[!!viewingSpell]);
 
   // Measure collapsible header content height
   useEffect(()=>{
@@ -1330,7 +1331,7 @@ function CharactersPage({isMobile}) {
   };
   const classOf=c=>[...c.classes.map(cls=>`${cls}${c.levels[cls]>0?` ${c.levels[cls]}`:''}`).join(', ')].join('');
 
-  useEffect(()=>{ if(selectedChar) pushBack(()=>setSelectedChar(null)); else clearBack(); },[!!selectedChar]);
+  useEffect(()=>{ if(selectedChar){ return pushBack(()=>setSelectedChar(null)); } },[!!selectedChar]);
   if (selectedChar) return React.createElement(CharacterDetail,{character:selectedChar,onBack:()=>setSelectedChar(null),onUpdate:handleUpdate});
   return React.createElement('div',{className:isMobile?'chars-page':'chars-page-desktop'},
     React.createElement('div',{style:isMobile?{width:'100%'}:{width:'100%',maxWidth:'560px',alignSelf:'center'}},
@@ -1470,7 +1471,7 @@ function SplashScreen({onDismiss}) {
 // ══════════════════════════════════════════════════════════════
 // SETTINGS PAGE
 // ══════════════════════════════════════════════════════════════
-function SettingsPage({dark,setDark,onShowAbout}) {
+function SettingsPage({dark,setDark,onShowAbout,onShowTutorial}) {
   const row=(label,desc,control)=>React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderBottom:'1px solid var(--border)'}},
     React.createElement('div',null,
       React.createElement('div',{style:{fontSize:'15px',fontWeight:600,color:'var(--text)'}},label),
@@ -1481,15 +1482,26 @@ function SettingsPage({dark,setDark,onShowAbout}) {
   const toggle=React.createElement('button',{
     onClick:()=>setDark(d=>!d),
     style:{width:'44px',height:'26px',borderRadius:'13px',border:'none',cursor:'pointer',position:'relative',
-      background:dark?'#1a3a5c':'rgba(180,180,180,0.3)',transition:'background 0.2s',flexShrink:0}
+      background:!dark?'#1a3a5c':'rgba(180,180,180,0.3)',transition:'background 0.2s',flexShrink:0}
   },
-    React.createElement('span',{style:{position:'absolute',top:'3px',left:dark?'21px':'3px',width:'20px',height:'20px',borderRadius:'50%',
+    React.createElement('span',{style:{position:'absolute',top:'3px',left:!dark?'21px':'3px',width:'20px',height:'20px',borderRadius:'50%',
       background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}})
   );
   const section=(title)=>React.createElement('div',{style:{padding:'18px 16px 6px',fontSize:'11px',fontWeight:700,color:'var(--text3)',letterSpacing:'0.1em',textTransform:'uppercase'}},title);
   return React.createElement('div',{style:{marginTop:'56px',height:'calc(100dvh - 56px - var(--tab-h))',overflowY:'auto',background:'var(--bg)'}},
     section('Display'),
-    row('Dark Mode','Use dark theme',toggle),
+    row('Light Theme','Use light theme',toggle),
+    section('Help'),
+    React.createElement('button',{
+      onClick:onShowTutorial,
+      style:{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',background:'transparent',border:'none',borderBottom:'1px solid var(--border)',cursor:'pointer',textAlign:'left'}
+    },
+      React.createElement('div',null,
+        React.createElement('div',{style:{fontSize:'15px',fontWeight:600,color:'var(--text)'}},'Tutorial'),
+        React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)',marginTop:'2px'}},'How to use this app')
+      ),
+      React.createElement('span',{style:{color:'var(--text3)',fontSize:'18px'}},'›')
+    ),
     section('Info'),
     React.createElement('button',{
       onClick:onShowAbout,
@@ -1507,14 +1519,14 @@ function SettingsPage({dark,setDark,onShowAbout}) {
 // ══════════════════════════════════════════════════════════════
 // MOBILE APP
 // ══════════════════════════════════════════════════════════════
-function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered}) {
+function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial}) {
   const [tab,setTab]=useState('spells');
   const [selected,setSelected]=useState(null);
   const [filterOpen,setFilterOpen]=useState(false);
   const [addSpellTarget,setAddSpellTarget]=useState(null);
   const [showAbout,setShowAbout]=useState(false);
-  useEffect(()=>{ if(selected) pushBack(()=>setSelected(null)); else clearBack(); },[!!selected]);
-  useEffect(()=>{ if(filterOpen) pushBack(()=>setFilterOpen(false)); else clearBack(); },[filterOpen]);
+  useEffect(()=>{ if(selected){ return pushBack(()=>setSelected(null)); } },[!!selected]);
+  useEffect(()=>{ if(filterOpen){ return pushBack(()=>setFilterOpen(false)); } },[filterOpen]);
   const {selTrad,selLevel,selSchool,selClass,selSub,ritualOnly,selBook,selComp,selTag,selSave,selDmg,selConc}=filters;
   const activeCount=(selTrad||[]).length+(selLevel||[]).length+(selSchool||[]).length+(selClass||[]).length+(selSub||[]).length+(ritualOnly?1:0)+(selBook||[]).length+(selComp||[]).length+(selTag||[]).length+(selSave||[]).length+(selDmg||[]).length+(selConc?1:0);
   const clearFilters=()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritualOnly:false,selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:''}));
@@ -1564,7 +1576,11 @@ function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered}) 
       selected&&React.createElement('div',{style:{display:'flex',flexDirection:'column',height:'100%'}},
         React.createElement('div',{className:'m-detail-topbar'},
           React.createElement('button',{className:'m-back-btn',onClick:()=>setSelected(null)},'← Back'),
-          React.createElement('span',{className:'m-topbar-title',style:{flex:1}},selected.name)
+          React.createElement('span',{className:'m-topbar-title',style:{flex:1}},selected.name),
+          React.createElement('button',{
+            onClick:()=>setAddSpellTarget(selected),
+            style:{background:'transparent',border:'1px solid var(--accent)',borderRadius:'8px',color:'var(--accent)',fontSize:'18px',fontWeight:700,cursor:'pointer',padding:'2px 10px',flexShrink:0,lineHeight:1}
+          },'+')
         ),
         React.createElement('div',{className:'m-detail-body',style:{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch'}},
           React.createElement(DetailContent,{spell:selected})
@@ -1581,7 +1597,7 @@ function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered}) 
         )
       )
     ),
-    tab==='settings'&&React.createElement(SettingsPage,{dark,setDark,onShowAbout:()=>setShowAbout(true)}),
+    tab==='settings'&&React.createElement(SettingsPage,{dark,setDark,onShowAbout:()=>setShowAbout(true),onShowTutorial:()=>setShowTutorial(true)}),
     addSpellTarget&&React.createElement(AddSpellPopup,{spell:addSpellTarget,onClose:()=>setAddSpellTarget(null),isMobile:true}),
     // About modal
     showAbout&&React.createElement('div',{
@@ -1636,7 +1652,7 @@ function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered}) 
 // ══════════════════════════════════════════════════════════════
 // DESKTOP APP
 // ══════════════════════════════════════════════════════════════
-function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered}) {
+function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial}) {
   const [tab,setTab]=useState('spells');
   const [selected,setSelected]=useState(null);
   const [addSpellTarget,setAddSpellTarget]=useState(null);
@@ -1682,7 +1698,15 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered})
       ),
       React.createElement('aside',{className:'d-detail'},
         selected
-          ? React.createElement('div',{className:'d-detail-inner'},React.createElement(DetailContent,{spell:selected}))
+          ? React.createElement('div',{className:'d-detail-inner',style:{display:'flex',flexDirection:'column',height:'100%'}},
+              React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'flex-end',padding:'8px 16px',borderBottom:'1px solid var(--border)',flexShrink:0}},
+                React.createElement('button',{
+                  onClick:()=>setAddSpellTarget(selected),
+                  style:{background:'var(--accent-bg)',border:'1px solid var(--accent)',borderRadius:'8px',color:'var(--accent)',fontSize:'13px',fontWeight:600,cursor:'pointer',padding:'5px 14px',fontFamily:'Inter,sans-serif'}
+                },'+ Add to Character')
+              ),
+              React.createElement('div',{style:{flex:1,overflowY:'auto'}},React.createElement(DetailContent,{spell:selected}))
+            )
           : React.createElement('div',{className:'d-detail-empty'},
               React.createElement('div',{style:{fontSize:'32px',opacity:'0.15'}},'✦'),
               React.createElement('div',{style:{fontSize:'14px',color:'var(--text3)'}},'Select a spell')
@@ -1707,17 +1731,28 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered})
         React.createElement('div',{style:{padding:'14px 16px 10px',fontSize:'13px',fontWeight:700,color:'var(--text3)',letterSpacing:'0.06em',textTransform:'uppercase',borderBottom:'1px solid var(--border2)'}},'Display'),
         React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px'}},
           React.createElement('div',null,
-            React.createElement('div',{style:{fontSize:'15px',fontWeight:600,color:'var(--text)'}},'Dark Mode'),
-            React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)',marginTop:'2px'}},'Use dark theme')
+            React.createElement('div',{style:{fontSize:'15px',fontWeight:600,color:'var(--text)'}},'Light Theme'),
+            React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)',marginTop:'2px'}},'Use light theme')
           ),
           React.createElement('button',{
             onClick:()=>setDark(d=>!d),
             style:{width:'44px',height:'26px',borderRadius:'13px',border:'none',cursor:'pointer',position:'relative',
-              background:dark?'#1a3a5c':'rgba(180,180,180,0.3)',transition:'background 0.2s',flexShrink:0}
+              background:!dark?'#1a3a5c':'rgba(180,180,180,0.3)',transition:'background 0.2s',flexShrink:0}
           },
-            React.createElement('span',{style:{position:'absolute',top:'3px',left:dark?'21px':'3px',width:'20px',height:'20px',borderRadius:'50%',
+            React.createElement('span',{style:{position:'absolute',top:'3px',left:!dark?'21px':'3px',width:'20px',height:'20px',borderRadius:'50%',
               background:'#fff',transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}})
           )
+        ),
+        React.createElement('div',{style:{padding:'14px 16px 10px',fontSize:'13px',fontWeight:700,color:'var(--text3)',letterSpacing:'0.06em',textTransform:'uppercase',borderBottom:'1px solid var(--border2)',borderTop:'1px solid var(--border2)'}},'Help'),
+        React.createElement('button',{
+          onClick:()=>{setShowSettings(false);setShowTutorial(true);},
+          style:{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',background:'transparent',border:'none',borderBottom:'1px solid var(--border)',cursor:'pointer'}
+        },
+          React.createElement('div',null,
+            React.createElement('div',{style:{fontSize:'15px',fontWeight:600,color:'var(--text)'}},'Tutorial'),
+            React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)',marginTop:'2px'}},'How to use this app')
+          ),
+          React.createElement('span',{style:{color:'var(--text3)',fontSize:'18px'}},'›')
         ),
         React.createElement('div',{style:{padding:'14px 16px 10px',fontSize:'13px',fontWeight:700,color:'var(--text3)',letterSpacing:'0.06em',textTransform:'uppercase',borderBottom:'1px solid var(--border2)',borderTop:'1px solid var(--border2)'}},'Info'),
         React.createElement('button',{
@@ -1762,20 +1797,79 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered})
 }
 
 // ══════════════════════════════════════════════════════════════
+// TUTORIAL
+// ══════════════════════════════════════════════════════════════
+const TUTORIAL_STEPS = [
+  {icon:'✦', title:'Browse Spells', desc:'Use the Spells tab to search all ToV spells. Filter by class, level, tradition, school, components, and more.'},
+  {icon:'📖', title:'Spell Details', desc:'Tap any spell row to see its full details — casting time, range, components, duration, and description.'},
+  {icon:'+', title:'Add to Character', desc:'Tap the + button on any spell row or inside a spell\'s detail view to add it to one of your characters\' Known Spells.'},
+  {icon:'⚔', title:'Characters', desc:'Switch to the Characters tab to create characters. Each character tracks class, level, race, and subclass.'},
+  {icon:'◉', title:'Spell Slots & Spells', desc:'Open a character to track used spell slots each session. Switch between Known and Prepared spell tabs.'},
+  {icon:'⚙', title:'Settings', desc:'Toggle Light Theme in Settings, or view app info in About. Your characters are saved locally in your browser.'},
+];
+
+function TutorialOverlay({onClose}) {
+  const [step, setStep] = useState(0);
+  const s = TUTORIAL_STEPS[step];
+  const isLast = step === TUTORIAL_STEPS.length - 1;
+  return React.createElement('div', {
+    style:{position:'fixed',inset:0,zIndex:9500,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',padding:'20px'}
+  },
+    React.createElement('div', {
+      onClick:e=>e.stopPropagation(),
+      style:{background:'var(--bg2)',borderRadius:'20px',padding:'32px 28px 24px',width:'100%',maxWidth:'400px',boxShadow:'0 16px 48px rgba(0,0,0,0.5)',position:'relative',border:'1px solid var(--border2)'}
+    },
+      // Close button
+      React.createElement('button', {
+        onClick:onClose,
+        style:{position:'absolute',top:'14px',right:'14px',background:'transparent',border:'none',color:'var(--text3)',fontSize:'22px',cursor:'pointer',lineHeight:1,padding:'4px'}
+      }, '×'),
+      // Step counter
+      React.createElement('div', {style:{fontSize:'12px',fontWeight:600,color:'var(--text3)',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:'20px'}},
+        `Step ${step+1} of ${TUTORIAL_STEPS.length}`
+      ),
+      // Icon
+      React.createElement('div', {style:{fontSize:'44px',textAlign:'center',marginBottom:'14px',lineHeight:1}}, s.icon),
+      // Title
+      React.createElement('div', {style:{fontSize:'20px',fontWeight:700,color:'var(--text)',textAlign:'center',marginBottom:'12px',fontFamily:'\'Cinzel\',serif'}}, s.title),
+      // Description
+      React.createElement('div', {style:{fontSize:'14px',color:'var(--text2)',lineHeight:'1.65',textAlign:'center',marginBottom:'28px'}}, s.desc),
+      // Progress dots
+      React.createElement('div', {style:{display:'flex',justifyContent:'center',gap:'6px',marginBottom:'24px'}},
+        TUTORIAL_STEPS.map((_,i)=>React.createElement('div', {key:i, style:{width:'7px',height:'7px',borderRadius:'50%',background:i===step?'var(--accent)':'var(--border2)',transition:'background 0.2s'}}))
+      ),
+      // Buttons
+      React.createElement('div', {style:{display:'flex',gap:'10px'}},
+        step > 0 && React.createElement('button', {
+          onClick:()=>setStep(s=>s-1),
+          style:{flex:1,padding:'11px',background:'var(--bg3)',border:'1px solid var(--border2)',borderRadius:'10px',color:'var(--text)',fontSize:'15px',fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}
+        }, '← Prev'),
+        React.createElement('button', {
+          onClick:()=>isLast?onClose():setStep(s=>s+1),
+          style:{flex:2,padding:'11px',background:'var(--accent-bg)',border:'1px solid var(--accent)',borderRadius:'10px',color:'var(--accent)',fontSize:'15px',fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}
+        }, isLast ? 'Done' : 'Next →')
+      )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
 // ROOT
 // ══════════════════════════════════════════════════════════════
 function App() {
-  const [dark,setDark]=useState(false);
+  const [dark,setDark]=useState(true);
   const [showSplash,setShowSplash]=useState(true);
+  const [showTutorial,setShowTutorial]=useState(false);
   const [search,setSearch]=useState('');
   const [filters,setFilters]=useState({selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritualOnly:false,selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:''});
   useEffect(()=>{ document.body.classList.toggle('light',!dark); },[dark]);
   const filtered=useFiltered(search,filters);
-  const shared={dark,setDark,search,setSearch,filters,setFilters,filtered};
+  const shared={dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial};
   return React.createElement('div',null,
     showSplash&&React.createElement(SplashScreen,{onDismiss:()=>setShowSplash(false)}),
     React.createElement(DesktopApp,shared),
-    React.createElement(MobileApp,shared)
+    React.createElement(MobileApp,shared),
+    showTutorial&&React.createElement(TutorialOverlay,{onClose:()=>setShowTutorial(false)})
   );
 }
 
@@ -1789,6 +1883,10 @@ window.addEventListener('popstate', function() {
 function pushBack(fn) {
   try { history.pushState({tov:true},''); } catch(e) {}
   window.__backStack.push(fn);
+  return function() {
+    var i = window.__backStack.lastIndexOf(fn);
+    if (i !== -1) window.__backStack.splice(i, 1);
+  };
 }
 function clearBack() {
   window.__backStack = [];
