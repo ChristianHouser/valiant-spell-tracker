@@ -1855,6 +1855,8 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
 
 
 // ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
 // PRINT SPELL CARDS
 // ══════════════════════════════════════════════════════════════
 const CARD_PRESETS = {
@@ -1864,171 +1866,34 @@ const CARD_PRESETS = {
   custom:  { label:'Custom',   sub:'User-defined',        w:2.75,h:4.75},
 };
 
-const TRAD_COLORS_PDF = {
-  Arcane:    [124,111,212],
-  Divine:    [212,160, 67],
-  Primordial:[ 93,170,111],
-  Wyrd:      [176, 93,170],
-  '':        [180,145, 65],
+const CLASS_COLORS_PDF = {
+  Barbarian: [139,32,32],   Bard:      [155,48,160],
+  Cleric:    [184,134,11],  Druid:     [45,106,45],
+  Fighter:   [92,64,51],    Mechanist: [58,90,124],
+  Monk:      [124,92,58],   Paladin:   [43,78,140],
+  Ranger:    [42,122,106],  Rogue:     [61,61,92],
+  Sorcerer:  [42,106,140],  Theurge:   [106,58,124],
+  Vanguard:  [74,42,42],    Warlock:   [42,100,120],
+  Witch:     [92,42,124],   Wizard:    [80,42,140],
+};
+const CLASS_COLORS_HEX = {
+  Barbarian:'#8B2020', Bard:'#9B30A0', Cleric:'#B8860B', Druid:'#2D6A2D',
+  Fighter:'#5C4033',   Mechanist:'#3A5A7C', Monk:'#7C5C3A', Paladin:'#2B4E8C',
+  Ranger:'#2A7A6A',    Rogue:'#3D3D5C', Sorcerer:'#2A6A8C', Theurge:'#6A3A7C',
+  Vanguard:'#4A2A2A',  Warlock:'#2A7878', Witch:'#5C2A7C', Wizard:'#502A8C',
 };
 
-const TRAD_COLORS_HEX = {
-  Arcane:'#7c6fd4', Divine:'#d4a043', Primordial:'#5daa6f', Wyrd:'#b05daa', '':'#c89b4a',
-};
-
-function getTradColor(traditions) {
-  return TRAD_COLORS_PDF[traditions && traditions[0]] || TRAD_COLORS_PDF[''];
+function getClassColor(spell) {
+  const cls = spell && spell.classes && spell.classes[0];
+  return CLASS_COLORS_PDF[cls] || [120,90,40];
 }
-function getTradColorHex(traditions) {
-  return TRAD_COLORS_HEX[traditions && traditions[0]] || TRAD_COLORS_HEX[''];
-}
-
-function getPdfFontSize(opts, role, cardW) {
-  const scale = opts.fontSize === 'small' ? 0.85 : opts.fontSize === 'large' ? 1.15 : opts.fontSize === 'medium' ? 1.0 : (cardW < 2.6 ? 0.9 : cardW < 3.1 ? 1.0 : 1.1);
-  const base = { title:9, meta:6.5, desc:7, footer:5.5 };
-  return (base[role] || 7) * scale;
-}
-
-function drawCropMarks(doc, x, y, w, h) {
-  const len = 0.12, gap = 0.04;
-  doc.setDrawColor(180,180,180);
-  doc.setLineWidth(0.004);
-  const corners = [[x,y],[x+w,y],[x,y+h],[x+w,y+h]];
-  corners.forEach(([cx,cy],i)=>{
-    const sx = (i===1||i===3)?1:-1, sy = (i>=2)?1:-1;
-    doc.line(cx+sx*gap, cy, cx+sx*(gap+len), cy);
-    doc.line(cx, cy+sy*gap, cx, cy+sy*(gap+len));
-  });
-}
-
-function drawCard(doc, spell, x, y, w, h, opts) {
-  const pad = 0.1;
-  const color = getTradColor(spell.traditions);
-
-  // Shadow
-  doc.setFillColor(210,210,210);
-  doc.rect(x+0.012, y+0.012, w, h, 'F');
-
-  // Card background
-  doc.setFillColor(255,255,255);
-  doc.rect(x, y, w, h, 'F');
-
-  // Border
-  doc.setDrawColor(160,160,160);
-  doc.setLineWidth(0.006);
-  doc.rect(x, y, w, h);
-
-  // Tradition header bar
-  doc.setFillColor(...color);
-  doc.rect(x, y, w, 0.22, 'F');
-
-  // Spell name (white, bold)
-  const titleSize = getPdfFontSize(opts, 'title', w);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(titleSize);
-  doc.setTextColor(255,255,255);
-  const badgeR = 0.085, badgeX = x+w-pad-badgeR, badgeCenter = y+0.115;
-  const nameMaxW = w - pad*2 - badgeR*2 - 0.06;
-  const nameLines = doc.splitTextToSize(spell.name, nameMaxW);
-  doc.text(nameLines[0], x+pad, y+0.148);
-
-  // Circle badge
-  doc.setFillColor(255,255,255);
-  doc.circle(badgeX, badgeCenter, badgeR, 'F');
-  doc.setTextColor(...color);
-  doc.setFontSize(titleSize * 0.8);
-  doc.text(spell.level===0?'C':String(spell.level), badgeX, badgeCenter+titleSize*0.8/72*0.35, {align:'center'});
-
-  // Subtitle
-  doc.setFont('helvetica','italic');
-  doc.setFontSize(5.5);
-  doc.setTextColor(90,90,90);
-  const subtitle = [spell.traditions.join('/'), spell.school, spell.isRitual?'Ritual':null].filter(Boolean).join(' · ');
-  doc.text(subtitle, x+pad, y+0.32);
-
-  // Separator 1
-  doc.setDrawColor(220,220,220);
-  doc.setLineWidth(0.004);
-  doc.line(x+pad, y+0.40, x+w-pad, y+0.40);
-
-  // Meta fields
-  const metaSize = getPdfFontSize(opts, 'meta', w);
-  doc.setFontSize(metaSize);
-  doc.setTextColor(30,30,30);
-  const lh = metaSize/72*1.5;
-  const mY1 = y+0.40+lh;
-  const mY2 = mY1+lh;
-  const half = w/2;
-
-  const metaPairs = [
-    ['CT', spell.castingTime], ['Rng', spell.range],
-    ['Comp', spell.components], ['Dur', spell.duration],
-  ];
-  [[metaPairs[0],metaPairs[1]],[metaPairs[2],metaPairs[3]]].forEach(([left,right],row)=>{
-    const my = row===0?mY1:mY2;
-    doc.setFont('helvetica','bold'); doc.text(left[0]+':', x+pad, my);
-    doc.setFont('helvetica','normal');
-    const lw = doc.getTextWidth(left[0]+': ');
-    const valMaxW = half - pad - lw - 0.02;
-    doc.text(doc.splitTextToSize(left[1]||'—', valMaxW)[0], x+pad+lw, my);
-    doc.setFont('helvetica','bold'); doc.text(right[0]+':', x+half, my);
-    doc.setFont('helvetica','normal');
-    const rw = doc.getTextWidth(right[0]+': ');
-    doc.text(doc.splitTextToSize(right[1]||'—', half-rw-0.02)[0], x+half+rw, my);
-  });
-
-  // Separator 2
-  const sep2Y = mY2 + lh*0.6;
-  doc.line(x+pad, sep2Y, x+w-pad, sep2Y);
-
-  // Description
-  const descSize = getPdfFontSize(opts, 'desc', w);
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(descSize);
-  doc.setTextColor(20,20,20);
-  const dLh = descSize/72*1.35;
-  const footerH = 0.30;
-  const descTop = sep2Y+0.06;
-  const descBot = y+h-footerH-0.04;
-  const maxLines = Math.max(1, Math.floor((descBot-descTop)/dLh));
-
-  let rawDesc = spell.description || '';
-  if (opts.layout==='compact') rawDesc = rawDesc.split('\n')[0];
-  else if (opts.layout==='notes') rawDesc = rawDesc.split('\n')[0];
-
-  const descLines = doc.splitTextToSize(rawDesc, w-pad*2);
-  const hasMore = descLines.length > maxLines;
-  const showLines = hasMore ? descLines.slice(0, maxLines-1) : descLines;
-  if (hasMore) showLines.push('\u2026');
-  showLines.forEach((line,i)=>{
-    doc.text(line, x+pad, descTop + i*dLh + descSize/72*0.85);
-  });
-
-  // Notes ruled lines
-  if (opts.layout==='notes') {
-    const notesTop = descTop + showLines.length*dLh + 0.06;
-    doc.setDrawColor(210,210,210); doc.setLineWidth(0.003);
-    for (let ny=notesTop; ny+dLh*1.2 < descBot; ny+=dLh*1.6) {
-      doc.line(x+pad, ny, x+w-pad, ny);
-    }
-  }
-
-  // Footer separator
-  const footSepY = y+h-footerH+0.02;
-  doc.setDrawColor(220,220,220); doc.setLineWidth(0.004);
-  doc.line(x+pad, footSepY, x+w-pad, footSepY);
-
-  // Classes + source
-  doc.setFontSize(getPdfFontSize(opts,'footer',w));
-  doc.setTextColor(80,80,80);
-  doc.setFont('helvetica','normal');
-  const classText = (spell.classes||[]).slice(0,5).join(' · ');
-  doc.text(classText, x+pad, y+h-0.07);
-  doc.text(spell.book||spell.source||'', x+w-pad, y+h-0.07, {align:'right'});
+function getClassColorHex(spell) {
+  const cls = spell && spell.classes && spell.classes[0];
+  return CLASS_COLORS_HEX[cls] || '#786028';
 }
 
 function calcLayout(cardW, cardH, paperSize) {
-  const pw = paperSize==='a4'?8.268:8.5, ph = paperSize==='a4'?11.693:11;
+  const pw=paperSize==='a4'?8.268:8.5, ph=paperSize==='a4'?11.693:11;
   const margin=0.25, usableW=pw-2*margin, usableH=ph-2*margin;
   const cols=Math.max(1,Math.floor(usableW/cardW+0.001));
   const rows=Math.max(1,Math.floor(usableH/cardH+0.001));
@@ -2036,97 +1901,443 @@ function calcLayout(cardW, cardH, paperSize) {
   return {cols,rows,perPage:cols*rows,startX,startY,pw,ph};
 }
 
-function generatePDF(spells, opts) {
-  if (!window.jspdf) { alert('PDF library not loaded. Please check your connection.'); return; }
-  const { jsPDF } = window.jspdf;
-  const { cols, rows, perPage, startX, startY, pw, ph } = calcLayout(opts.w, opts.h, opts.paper);
-  const doc = new jsPDF({ unit:'in', format: opts.paper==='a4'?'a4':'letter', orientation:'portrait' });
-
-  spells.forEach((spell, idx) => {
-    if (idx>0 && idx%perPage===0) doc.addPage();
-    const pos = idx%perPage;
-    const col = pos%cols, row = Math.floor(pos/cols);
-    const x = startX + col*opts.w, y = startY + row*opts.h;
-    drawCard(doc, spell, x, y, opts.w, opts.h, opts);
-    if (opts.cropMarks) drawCropMarks(doc, x, y, opts.w, opts.h);
+function drawCropMarks(doc, x, y, w, h) {
+  const len=0.12,gap=0.04;
+  doc.setDrawColor(180,180,180); doc.setLineWidth(0.004);
+  [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([cx,cy],i)=>{
+    const sx=(i===1||i===3)?1:-1, sy=(i>=2)?1:-1;
+    doc.line(cx+sx*gap,cy,cx+sx*(gap+len),cy);
+    doc.line(cx,cy+sy*gap,cx,cy+sy*(gap+len));
   });
+}
+
+// ── Class Emblem (drawn with jsPDF primitives) ─────────────────
+function drawClassEmblem(doc, cls, cx, cy, r) {
+  doc.setLineWidth(0.007);
+  // Outer circle
+  doc.circle(cx, cy, r, 'D');
+  // Inner circle
+  doc.circle(cx, cy, r*0.78, 'D');
+
+  const lw = 0.006; doc.setLineWidth(lw);
+  const p = (angle, radius) => [cx + Math.cos(angle)*radius, cy + Math.sin(angle)*radius];
+  const line = (x1,y1,x2,y2) => doc.line(x1,y1,x2,y2);
+
+  const s = r * 0.55; // inner symbol scale
+
+  if (cls === 'Bard') {
+    // Lyre: vertical oval + 3 strings
+    doc.ellipse(cx, cy, s*0.5, s*0.75, 'D');
+    for (let i=-1;i<=1;i++) line(cx+i*s*0.18, cy-s*0.75, cx+i*s*0.18, cy+s*0.2);
+    line(cx-s*0.5, cy+s*0.3, cx+s*0.5, cy+s*0.3);
+  } else if (cls === 'Cleric') {
+    // Sun: circle + 8 rays
+    doc.circle(cx, cy, s*0.35, 'D');
+    for (let i=0;i<8;i++) {
+      const a=i*Math.PI/4, [x1,y1]=p(a,s*0.45), [x2,y2]=p(a,s*0.75);
+      line(x1,y1,x2,y2);
+    }
+  } else if (cls === 'Druid') {
+    // Bear: circle head + 2 ear bumps + wreath lines
+    doc.circle(cx, cy-s*0.1, s*0.45, 'D');
+    doc.circle(cx-s*0.35, cy-s*0.48, s*0.15, 'D');
+    doc.circle(cx+s*0.35, cy-s*0.48, s*0.15, 'D');
+    // wreath
+    for (let i=-3;i<=3;i++) { const a=i*0.35; line(cx+Math.cos(a)*s*0.65,cy+Math.sin(a)*s*0.65+s*0.1,cx+Math.cos(a)*s*0.55,cy+Math.sin(a)*s*0.45+s*0.1); }
+  } else if (cls === 'Paladin') {
+    // Winged shield: pentagon
+    const pts = [[0,-s*0.7],[s*0.55,-s*0.25],[s*0.55,s*0.2],[0,s*0.7],[-s*0.55,s*0.2],[-s*0.55,-s*0.25]];
+    for (let i=0;i<pts.length;i++) { const [x1,y1]=pts[i],[x2,y2]=pts[(i+1)%pts.length]; line(cx+x1,cy+y1,cx+x2,cy+y2); }
+    // star
+    line(cx,cy-s*0.25,cx,cy+s*0.25); line(cx-s*0.22,cy,cx+s*0.22,cy);
+  } else if (cls === 'Ranger') {
+    // Antler: branching lines
+    line(cx,cy+s*0.6,cx,cy-s*0.2);
+    line(cx,cy-s*0.2,cx-s*0.4,cy-s*0.7); line(cx,cy-s*0.2,cx+s*0.4,cy-s*0.7);
+    line(cx-s*0.4,cy-s*0.7,cx-s*0.55,cy-s*0.4); line(cx+s*0.4,cy-s*0.7,cx+s*0.55,cy-s*0.4);
+    line(cx-s*0.15,cy+s*0.05,cx-s*0.45,cy-s*0.25); line(cx+s*0.15,cy+s*0.05,cx+s*0.45,cy-s*0.25);
+  } else if (cls === 'Sorcerer') {
+    // Hand with 5 rays (fingers)
+    for (let i=0;i<5;i++) { const a=-Math.PI/2+(i-2)*0.35; line(cx,cy,cx+Math.cos(a)*s*0.7,cy+Math.sin(a)*s*0.7); }
+    // sparkles
+    const sp = [[cx+s*0.5,cy-s*0.5],[cx-s*0.5,cy-s*0.3]];
+    sp.forEach(([sx,sy])=>{ line(sx-0.04,sy,sx+0.04,sy); line(sx,sy-0.04,sx,sy+0.04); });
+  } else if (cls === 'Warlock') {
+    // Open book with eye
+    doc.rect(cx-s*0.55, cy-s*0.35, s*1.1, s*0.7, 'D');
+    line(cx,cy-s*0.35,cx,cy+s*0.35);
+    // Eye on left page
+    doc.ellipse(cx-s*0.25, cy, s*0.2, s*0.12, 'D');
+    doc.circle(cx-s*0.25, cy, s*0.06, 'F');
+  } else if (cls === 'Wizard') {
+    // Book + sparkle
+    doc.rect(cx-s*0.45, cy-s*0.38, s*0.9, s*0.75, 'D');
+    line(cx,cy-s*0.38,cx,cy+s*0.37);
+    // Star above
+    for (let i=0;i<4;i++) { const a=i*Math.PI/4; line(cx+Math.cos(a)*s*0.55,cy-s*0.55+Math.sin(a)*s*0.15,cx+Math.cos(a+Math.PI)*s*0.55,cy-s*0.55+Math.sin(a+Math.PI)*s*0.15); }
+  } else if (cls === 'Barbarian') {
+    // Axe: triangle head + handle
+    line(cx-s*0.45,cy-s*0.5,cx+s*0.45,cy-s*0.5); line(cx+s*0.45,cy-s*0.5,cx,cy+s*0.1); line(cx,cy+s*0.1,cx-s*0.45,cy-s*0.5);
+    line(cx,cy+s*0.1,cx,cy+s*0.7);
+  } else if (cls === 'Fighter') {
+    // Crossed swords
+    line(cx-s*0.55,cy-s*0.6,cx+s*0.55,cy+s*0.6); line(cx+s*0.55,cy-s*0.6,cx-s*0.55,cy+s*0.6);
+    // guards
+    line(cx-s*0.2,cy-s*0.12,cx+s*0.2,cy-s*0.12); line(cx-s*0.2,cy+s*0.12,cx+s*0.2,cy+s*0.12);
+  } else if (cls === 'Mechanist') {
+    // Gear: circle + 8 small rects
+    doc.circle(cx,cy,s*0.35,'D');
+    for (let i=0;i<8;i++){ const a=i*Math.PI/4,[gx,gy]=p(a,s*0.52); doc.rect(gx-0.035,gy-0.045,0.07,0.09,'D'); }
+  } else if (cls === 'Monk') {
+    // Concentric circles (focus)
+    doc.circle(cx,cy,s*0.55,'D'); doc.circle(cx,cy,s*0.35,'D'); doc.circle(cx,cy,s*0.15,'D');
+  } else if (cls === 'Rogue') {
+    // Dagger: thin triangle + guard
+    line(cx,cy-s*0.7,cx-s*0.15,cy+s*0.2); line(cx,cy-s*0.7,cx+s*0.15,cy+s*0.2); line(cx-s*0.15,cy+s*0.2,cx+s*0.15,cy+s*0.2);
+    line(cx-s*0.3,cy+s*0.2,cx+s*0.3,cy+s*0.2); line(cx,cy+s*0.2,cx,cy+s*0.65);
+  } else if (cls === 'Theurge') {
+    // Flame: teardrop
+    line(cx,cy-s*0.7,cx-s*0.3,cy+s*0.1); line(cx-s*0.3,cy+s*0.1,cx,cy+s*0.45); line(cx,cy+s*0.45,cx+s*0.3,cy+s*0.1); line(cx+s*0.3,cy+s*0.1,cx,cy-s*0.7);
+  } else if (cls === 'Vanguard') {
+    // Tower shield
+    line(cx-s*0.42,cy-s*0.6,cx+s*0.42,cy-s*0.6); line(cx+s*0.42,cy-s*0.6,cx+s*0.42,cy+s*0.15); line(cx+s*0.42,cy+s*0.15,cx,cy+s*0.65); line(cx,cy+s*0.65,cx-s*0.42,cy+s*0.15); line(cx-s*0.42,cy+s*0.15,cx-s*0.42,cy-s*0.6);
+    line(cx,cy-s*0.6,cx,cy+s*0.55); line(cx-s*0.42,cy,cx+s*0.42,cy);
+  } else if (cls === 'Witch') {
+    // Crescent moon
+    doc.circle(cx,cy,s*0.5,'D');
+    doc.setFillColor(getBackColor()); doc.circle(cx+s*0.22,cy-s*0.1,s*0.42,'F');
+    doc.setDrawColor(255,255,255); doc.circle(cx+s*0.22,cy-s*0.1,s*0.42,'D');
+  } else {
+    // Default: 4-pointed star
+    line(cx,cy-s*0.7,cx,cy+s*0.7); line(cx-s*0.7,cy,cx+s*0.7,cy);
+    line(cx-s*0.45,cy-s*0.45,cx+s*0.45,cy+s*0.45); line(cx+s*0.45,cy-s*0.45,cx-s*0.45,cy+s*0.45);
+  }
+}
+let _backFillColor = [100,60,150];
+function getBackColor(){ return _backFillColor; }
+
+// ── Ornate border frame ────────────────────────────────────────
+function drawOrnateFrame(doc, x, y, w, h) {
+  doc.setDrawColor(255,255,255); doc.setLineWidth(0.009);
+  // Outer border
+  const o1=0.08; doc.rect(x+o1,y+o1,w-o1*2,h-o1*2,'D');
+  // Inner border
+  const o2=0.16; doc.rect(x+o2,y+o2,w-o2*2,h-o2*2,'D');
+
+  // Corner diamonds (small rotated squares)
+  const dSize=0.045;
+  [[x+o2,y+o2],[x+w-o2,y+o2],[x+o2,y+h-o2],[x+w-o2,y+h-o2]].forEach(([dx,dy])=>{
+    doc.line(dx,dy-dSize,dx+dSize,dy); doc.line(dx+dSize,dy,dx,dy+dSize);
+    doc.line(dx,dy+dSize,dx-dSize,dy); doc.line(dx-dSize,dy,dx,dy-dSize);
+  });
+  // Mid-edge diamonds
+  const dS2=0.038;
+  [[x+w/2,y+o2],[x+w/2,y+h-o2],[x+o2,y+h/2],[x+w-o2,y+h/2]].forEach(([dx,dy])=>{
+    doc.line(dx,dy-dS2,dx+dS2,dy); doc.line(dx+dS2,dy,dx,dy+dS2);
+    doc.line(dx,dy+dS2,dx-dS2,dy); doc.line(dx-dS2,dy,dx,dy-dS2);
+  });
+}
+
+// ── Card FRONT (spell info, Image 2 style) ─────────────────────
+function drawCardFront(doc, spell, x, y, w, h, opts) {
+  const pad = 0.1;
+  const clsColor = getClassColor(spell);
+
+  // Shadow
+  doc.setFillColor(210,210,210);
+  doc.rect(x+0.012, y+0.012, w, h, 'F');
+
+  // White card background
+  doc.setFillColor(252,250,248);
+  doc.roundedRect(x, y, w, h, 0.06, 0.06, 'F');
+
+  // Colored border
+  doc.setDrawColor(...clsColor);
+  doc.setLineWidth(0.018);
+  doc.roundedRect(x, y, w, h, 0.06, 0.06, 'D');
+
+  // ── Spell Name ──
+  const titleSize = opts.fontSize==='small'?8:opts.fontSize==='large'?11:opts.fontSize==='medium'?9.5:(w<2.6?8.5:w<3.1?9.5:11);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(titleSize);
+  doc.setTextColor(20,20,30);
+  const nameLines = doc.splitTextToSize(spell.name, w - pad*2);
+  doc.text(nameLines[0], x+w/2, y+0.19, {align:'center'});
+
+  // ── School · Level subtitle ──
+  const lvlLabel = spell.level===0?'Cantrip':'Lvl '+spell.level;
+  const subtitle = (spell.school||'') + (spell.school&&lvlLabel?' \u00b7 ':' ') + lvlLabel;
+  doc.setFont('helvetica','italic');
+  doc.setFontSize(5.5);
+  doc.setTextColor(...clsColor);
+  const arrowY = y+0.30;
+  const subW = doc.getTextWidth(subtitle);
+  const subX = x+w/2;
+  doc.text('\u2014  '+subtitle+'  \u2014', subX, arrowY, {align:'center'});
+
+  // ── Separator ──
+  doc.setDrawColor(...clsColor);
+  doc.setLineWidth(0.005);
+  doc.line(x+pad, y+0.37, x+w-pad, y+0.37);
+
+  // ── 2×2 Info Grid ──
+  const gridTop = y+0.42;
+  const boxW = (w - pad*2 - 0.04)/2;
+  const boxH = 0.42;
+  const gapX = 0.04;
+  const boxes = [
+    {label:'Duration',    val:spell.duration,    icon:'\u231b', col:0, row:0},
+    {label:'Range',       val:spell.range,       icon:'\u2295', col:1, row:0},
+    {label:'Casting Time',val:spell.castingTime, icon:'\u23f1', col:0, row:1},
+    {label:'Components',  val:spell.components,  icon:'\u2726', col:1, row:1},
+  ];
+  boxes.forEach(({label,val,icon,col,row})=>{
+    const bx = x+pad + col*(boxW+gapX);
+    const by = gridTop + row*(boxH+0.03);
+    doc.setDrawColor(200,200,200); doc.setLineWidth(0.005);
+    doc.roundedRect(bx, by, boxW, boxH, 0.03, 0.03, 'D');
+    // Label
+    doc.setFont('helvetica','bold'); doc.setFontSize(5); doc.setTextColor(100,100,100);
+    doc.text(label, bx+boxW/2, by+0.11, {align:'center'});
+    // Value
+    doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor(20,20,30);
+    const valStr = doc.splitTextToSize(val||'—', boxW-0.06)[0];
+    doc.text(valStr, bx+boxW/2, by+0.28, {align:'center'});
+    // Separator line in box
+    doc.setDrawColor(220,220,220); doc.setLineWidth(0.003);
+    doc.line(bx+0.06, by+0.16, bx+boxW-0.06, by+0.16);
+  });
+
+  // ── Separator after grid ──
+  const gridBot = gridTop + 2*(boxH+0.03) - 0.01;
+  doc.setDrawColor(...clsColor); doc.setLineWidth(0.005);
+  doc.line(x+pad, gridBot+0.04, x+w-pad, gridBot+0.04);
+
+  // ── Description ──
+  const descSize = opts.fontSize==='small'?6:opts.fontSize==='large'?8:opts.fontSize==='medium'?7:(w<2.6?6.5:w<3.1?7:8);
+  doc.setFont('helvetica','normal'); doc.setFontSize(descSize);
+  doc.setTextColor(30,30,30);
+  const dLh = descSize/72*1.3;
+
+  // Material component extraction
+  const compStr = spell.components||'';
+  const hasMaterial = compStr.includes('M');
+  const materialMatch = compStr.match(/\(([^)]+)\)/);
+  const materialText = materialMatch ? materialMatch[1] : null;
+
+  const footerH = hasMaterial&&materialText ? 0.22 : 0.08;
+  const descTop = gridBot+0.1;
+  const descBot = y+h-footerH-0.04;
+  const maxLines = Math.max(1, Math.floor((descBot-descTop)/dLh));
+
+  // Faint watermark (class symbol) in description area
+  try {
+    const wmCX = x+w/2, wmCY = (descTop+descBot)/2;
+    const wmR = Math.min((descBot-descTop)*0.38, w*0.3);
+    if (doc.setGState) {
+      doc.setGState(new doc.GState({opacity:0.05}));
+      doc.setDrawColor(...clsColor); doc.setFillColor(...clsColor);
+      doc.setLineWidth(0.01);
+      _backFillColor = [252,250,248];
+      drawClassEmblem(doc, (spell.classes||[''])[0], wmCX, wmCY, wmR);
+      doc.setGState(new doc.GState({opacity:1}));
+    }
+  } catch(e){}
+
+  let rawDesc = spell.description||'';
+  if (opts.layout==='compact') rawDesc = rawDesc.split('\n')[0];
+  const descLines = doc.splitTextToSize(rawDesc, w-pad*2);
+  const hasMore = descLines.length > maxLines;
+  const showLines = hasMore ? descLines.slice(0,maxLines-1) : descLines.slice(0,maxLines);
+  if (hasMore) showLines.push('\u2026');
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(descSize); doc.setTextColor(30,30,30);
+  showLines.forEach((line,i)=>{
+    doc.text(line, x+pad, descTop + i*dLh + descSize/72*0.85);
+  });
+
+  // Notes lines
+  if (opts.layout==='notes') {
+    const notesTop = descTop + showLines.length*dLh + 0.06;
+    doc.setDrawColor(210,210,210); doc.setLineWidth(0.003);
+    for (let ny=notesTop; ny+dLh*1.2<descBot; ny+=dLh*1.5) doc.line(x+pad,ny,x+w-pad,ny);
+  }
+
+  // ── Materials footer ──
+  if (hasMaterial && materialText) {
+    doc.setDrawColor(220,220,220); doc.setLineWidth(0.004);
+    doc.line(x+pad, y+h-footerH+0.01, x+w-pad, y+h-footerH+0.01);
+    doc.setFont('helvetica','italic'); doc.setFontSize(5); doc.setTextColor(100,100,100);
+    doc.text('\u2697 '+materialText, x+pad+0.02, y+h-0.06);
+  }
+}
+
+// ── Card BACK (decorative class design, Image 1 style) ─────────
+function drawCardBack(doc, cls, x, y, w, h) {
+  const color = CLASS_COLORS_PDF[cls] || [120,90,40];
+  _backFillColor = color;
+
+  // Shadow
+  doc.setFillColor(180,180,180);
+  doc.rect(x+0.012, y+0.012, w, h, 'F');
+
+  // Solid colored background
+  doc.setFillColor(...color);
+  doc.roundedRect(x, y, w, h, 0.06, 0.06, 'F');
+
+  // Border frame
+  doc.setDrawColor(255,255,255);
+  drawOrnateFrame(doc, x, y, w, h);
+
+  // "SPELL CARD" at top
+  doc.setFont('helvetica','bold'); doc.setFontSize(5);
+  doc.setTextColor(255,255,255);
+  doc.text('SPELL CARD', x+w/2, y+0.27, {align:'center', charSpace:1.5});
+
+  // Central emblem
+  const cx=x+w/2, cy=y+h*0.46, r=Math.min(w,h)*0.22;
+  doc.setDrawColor(255,255,255); doc.setFillColor(...color);
+  doc.setLineWidth(0.008);
+  drawClassEmblem(doc, cls, cx, cy, r);
+
+  // Class name at bottom
+  doc.setFont('helvetica','bold'); doc.setFontSize(8);
+  doc.setTextColor(255,255,255);
+  doc.text(cls.toUpperCase(), x+w/2, y+h-0.22, {align:'center', charSpace:2});
+}
+
+// ── PDF Generation ─────────────────────────────────────────────
+function generatePDF(spells, opts) {
+  if (!window.jspdf) { alert('PDF library not loaded. Please check your connection and reload.'); return; }
+  const { jsPDF } = window.jspdf;
+  const { cols, rows, perPage, startX, startY } = calcLayout(opts.w, opts.h, opts.paper);
+  const doc = new jsPDF({ unit:'in', format:opts.paper==='a4'?'a4':'letter', orientation:'portrait' });
+
+  const totalPages = Math.ceil(spells.length/perPage);
+
+  for (let pg=0; pg<totalPages; pg++) {
+    if (pg>0) doc.addPage();
+    const pageSpells = spells.slice(pg*perPage, (pg+1)*perPage);
+
+    // Front page
+    pageSpells.forEach((spell,pos)=>{
+      const col=pos%cols, row=Math.floor(pos/cols);
+      const x=startX+col*opts.w, y=startY+row*opts.h;
+      drawCardFront(doc, spell, x, y, opts.w, opts.h, opts);
+      if (opts.cropMarks) drawCropMarks(doc, x, y, opts.w, opts.h);
+    });
+
+    // Back page (if double-sided)
+    if (opts.doubleSided) {
+      doc.addPage();
+      pageSpells.forEach((spell,pos)=>{
+        const col=pos%cols, row=Math.floor(pos/cols);
+        // Mirror columns for back-side alignment (flip on long edge)
+        const mirrorCol = cols - 1 - col;
+        const x=startX+mirrorCol*opts.w, y=startY+row*opts.h;
+        const backCls = opts.backClass==='auto' ? ((spell.classes||['Wizard'])[0]) : opts.backClass;
+        drawCardBack(doc, backCls, x, y, opts.w, opts.h);
+        if (opts.cropMarks) drawCropMarks(doc, x, y, opts.w, opts.h);
+      });
+    }
+  }
 
   doc.save('tov-spell-cards.pdf');
 }
 
-// ── Live preview card (HTML) ──────────────────────────────────
+// ── Live preview card (HTML/React) ─────────────────────────────
 function CardPreview({ spell, opts }) {
   if (!spell) return React.createElement('div',{style:{color:'var(--text3)',fontSize:'13px',textAlign:'center',padding:'20px'}},'No spell selected');
-  const PX_PER_IN = 90;
-  const cw = opts.w*PX_PER_IN, ch = opts.h*PX_PER_IN;
-  const color = getTradColorHex(spell.traditions);
-  const pad = 10;
-  const titleFs = Math.round(getPdfFontSize(opts,'title',opts.w)*1.33);
-  const metaFs  = Math.round(getPdfFontSize(opts,'meta', opts.w)*1.33);
-  const descFs  = Math.round(getPdfFontSize(opts,'desc', opts.w)*1.33);
-  const footFs  = Math.round(getPdfFontSize(opts,'footer',opts.w)*1.33);
-
-  const subtitle = [spell.traditions.join('/'), spell.school, spell.isRitual?'Ritual':null].filter(Boolean).join(' · ');
-  const desc0 = (spell.description||'').split('\n')[0];
-  const descText = opts.layout==='full' ? (spell.description||'') : desc0;
-
-  return React.createElement('div',{style:{width:cw+'px',height:ch+'px',background:'#fff',border:'1.5px solid #aaa',borderRadius:'4px',overflow:'hidden',position:'relative',boxShadow:'2px 2px 6px rgba(0,0,0,0.2)',flexShrink:0}},
-    // Tradition bar
-    React.createElement('div',{style:{background:color,height:'22px',width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 '+pad+'px',boxSizing:'border-box'}},
-      React.createElement('span',{style:{color:'#fff',fontWeight:700,fontSize:titleFs+'px',fontFamily:'Arial,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:cw-50+'px'}},spell.name),
-      React.createElement('span',{style:{background:'#fff',borderRadius:'50%',width:'17px',height:'17px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'9px',fontWeight:700,color:color,flexShrink:0}},spell.level===0?'C':String(spell.level))
+  const PX=90;
+  const cw=opts.w*PX, ch=opts.h*PX;
+  const clsHex = getClassColorHex(spell);
+  const titleFs = Math.round((opts.fontSize==='small'?8:opts.fontSize==='large'?11:opts.w<2.6?8.5:9.5)*1.2);
+  const metaFs  = Math.round(5.5*1.25);
+  const descFs  = Math.round((opts.w<2.6?6.5:7)*1.25);
+  const lvlLabel = spell.level===0?'Cantrip':'Lvl '+spell.level;
+  const subtitle = (spell.school||'')+' \u00b7 '+lvlLabel;
+  const compStr  = spell.components||'';
+  const hasMat   = compStr.includes('M');
+  const matMatch = compStr.match(/\(([^)]+)\)/);
+  const matText  = matMatch?matMatch[1]:null;
+  const desc0 = opts.layout==='full'?(spell.description||''):(spell.description||'').split('\n')[0];
+  const infoBoxStyle = (label,val)=>React.createElement('div',{style:{border:'1px solid #ddd',borderRadius:'4px',padding:'3px 5px',flex:1,minWidth:0,textAlign:'center'}},
+    React.createElement('div',{style:{fontSize:'7px',fontWeight:700,color:'#888',fontFamily:'Arial,sans-serif',borderBottom:'1px solid #eee',marginBottom:'2px',paddingBottom:'1px'}},label),
+    React.createElement('div',{style:{fontSize:metaFs+'px',color:'#222',fontFamily:'Arial,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},val||'\u2014')
+  );
+  return React.createElement('div',{style:{width:cw+'px',height:ch+'px',background:'#fcfaf8',border:'3px solid '+clsHex,borderRadius:'6px',overflow:'hidden',position:'relative',boxShadow:'2px 2px 8px rgba(0,0,0,0.2)',flexShrink:0,display:'flex',flexDirection:'column',padding:'8px 8px 4px'}},
+    React.createElement('div',{style:{fontSize:titleFs+'px',fontWeight:700,textAlign:'center',color:'#14141e',fontFamily:'Arial,sans-serif',lineHeight:1.2,marginBottom:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},spell.name),
+    React.createElement('div',{style:{fontSize:'8px',textAlign:'center',color:clsHex,fontStyle:'italic',fontFamily:'Arial,sans-serif',marginBottom:'3px'}},'\u2014 '+subtitle+' \u2014'),
+    React.createElement('hr',{style:{border:'none',borderTop:'1.5px solid '+clsHex,margin:'0 0 4px'}}),
+    React.createElement('div',{style:{display:'flex',gap:'3px',marginBottom:'3px'}},
+      infoBoxStyle('Duration', spell.duration),
+      infoBoxStyle('Range', spell.range)
     ),
-    // Subtitle
-    React.createElement('div',{style:{padding:'2px '+pad+'px 0',fontSize:'7px',color:'#666',fontFamily:'Arial,sans-serif',fontStyle:'italic'}},subtitle),
-    // Separator
-    React.createElement('hr',{style:{margin:'3px '+pad+'px',border:'none',borderTop:'1px solid #ddd'}}),
-    // Meta
-    React.createElement('div',{style:{padding:'0 '+pad+'px',fontSize:metaFs+'px',fontFamily:'Arial,sans-serif',color:'#222',lineHeight:'1.4'}},
-      React.createElement('div',{style:{display:'flex',gap:'8px'}},
-        React.createElement('span',null,React.createElement('b',null,'CT: '),spell.castingTime),
-        React.createElement('span',null,React.createElement('b',null,'Rng: '),spell.range)
-      ),
-      React.createElement('div',{style:{display:'flex',gap:'8px'}},
-        React.createElement('span',{style:{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:cw/2-10+'px'}},React.createElement('b',null,'Comp: '),spell.components),
-        React.createElement('span',null,React.createElement('b',null,'Dur: '),spell.duration)
-      )
+    React.createElement('div',{style:{display:'flex',gap:'3px',marginBottom:'4px'}},
+      infoBoxStyle('Casting Time', spell.castingTime),
+      infoBoxStyle('Components', (spell.components||'').replace(/\([^)]+\)/,'').trim())
     ),
-    // Separator
-    React.createElement('hr',{style:{margin:'3px '+pad+'px',border:'none',borderTop:'1px solid #ddd'}}),
-    // Description
-    React.createElement('div',{style:{padding:'0 '+pad+'px',fontSize:descFs+'px',fontFamily:'Arial,sans-serif',color:'#111',lineHeight:'1.35',overflow:'hidden',maxHeight:(ch-22-20-40-20-26)+'px',flex:1}},descText),
-    // Footer
-    React.createElement('div',{style:{position:'absolute',bottom:0,left:0,right:0,borderTop:'1px solid #ddd',padding:'2px '+pad+'px',display:'flex',justifyContent:'space-between',background:'#fff'}},
-      React.createElement('span',{style:{fontSize:footFs+'px',color:'#777',fontFamily:'Arial,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, (spell.classes||[]).slice(0,4).join(' · ')),
-      React.createElement('span',{style:{fontSize:footFs+'px',color:'#999',fontFamily:'Arial,sans-serif',flexShrink:0}}, spell.book||spell.source||'')
-    )
+    React.createElement('hr',{style:{border:'none',borderTop:'1px solid '+clsHex,margin:'0 0 4px'}}),
+    React.createElement('div',{style:{flex:1,fontSize:descFs+'px',color:'#1e1e1e',fontFamily:'Arial,sans-serif',lineHeight:'1.3',overflow:'hidden',position:'relative'}},
+      desc0
+    ),
+    hasMat&&matText&&React.createElement('div',{style:{borderTop:'1px solid #ddd',paddingTop:'2px',fontSize:'7px',color:'#888',fontFamily:'Arial,sans-serif',fontStyle:'italic',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:'2px'}},'\u2697 '+matText)
+  );
+}
+
+function CardBackPreview({ cls }) {
+  const hex = CLASS_COLORS_HEX[cls] || '#786028';
+  return React.createElement('div',{style:{width:'100%',aspectRatio:'5/7',background:hex,borderRadius:'6px',border:'3px solid '+hex,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'space-between',padding:'8%',boxSizing:'border-box',boxShadow:'2px 2px 8px rgba(0,0,0,0.2)'}},
+    React.createElement('div',{style:{border:'1.5px solid rgba(255,255,255,0.7)',borderRadius:'3px',padding:'2px 8px',fontSize:'8px',letterSpacing:'2px',color:'rgba(255,255,255,0.9)',fontFamily:'Arial,sans-serif',fontWeight:700}},'SPELL CARD'),
+    React.createElement('div',{style:{width:'55%',aspectRatio:'1',borderRadius:'50%',border:'2px solid rgba(255,255,255,0.7)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'24px'}},
+      ({Bard:'♪',Cleric:'✦',Druid:'🌿',Paladin:'✙',Ranger:'⚔',Sorcerer:'✦',Warlock:'👁',Wizard:'✦',Barbarian:'⚔',Fighter:'⚔',Mechanist:'⚙',Monk:'○',Rogue:'†',Theurge:'🔥',Vanguard:'🛡',Witch:'☽'})[cls]||'✦'
+    ),
+    React.createElement('div',{style:{fontSize:'9px',letterSpacing:'3px',color:'#fff',fontFamily:'Arial,sans-serif',fontWeight:700}},cls.toUpperCase())
   );
 }
 
 // ── Print Cards Modal ─────────────────────────────────────────
+const PRINT_SETTINGS_KEY = 'tov_printSettings';
+function loadPrintSettings() {
+  try { return JSON.parse(localStorage.getItem(PRINT_SETTINGS_KEY)||'{}'); } catch{ return {}; }
+}
+function savePrintSettings(s) {
+  try { localStorage.setItem(PRINT_SETTINGS_KEY, JSON.stringify(s)); } catch{}
+}
+
 function PrintCardsModal({ onClose, filtered, allSpells }) {
-  const [selectedNames, setSelectedNames] = useState(()=>new Set((filtered||allSpells).map(s=>s.name)));
-  const [preset, setPreset]  = useState('detailed');
-  const [paper,  setPaper]   = useState('letter');
-  const [layout, setLayout]  = useState('full');
-  const [advanced, setAdvanced] = useState(false);
-  const [fontSize, setFontSize] = useState('auto');
-  const [cropMarks, setCropMarks] = useState(false);
-  const [customW, setCustomW] = useState(2.75);
-  const [customH, setCustomH] = useState(4.75);
+  const saved = loadPrintSettings();
+  const [selectedNames, setSelectedNames] = useState(()=>new Set());
+  const [preset,     setPreset]     = useState(saved.preset||'detailed');
+  const [paper,      setPaper]      = useState(saved.paper||'letter');
+  const [layout,     setLayout]     = useState(saved.layout||'full');
+  const [advanced,   setAdvanced]   = useState(false);
+  const [fontSize,   setFontSize]   = useState(saved.fontSize||'auto');
+  const [cropMarks,  setCropMarks]  = useState(saved.cropMarks||false);
+  const [doubleSided,setDoubleSided]= useState(saved.doubleSided||false);
+  const [backClass,  setBackClass]  = useState(saved.backClass||'auto');
+  const [customW,    setCustomW]    = useState(saved.customW||2.75);
+  const [customH,    setCustomH]    = useState(saved.customH||4.75);
   const [previewIdx, setPreviewIdx] = useState(0);
+  const [previewSide,setPreviewSide]= useState('front');
   const [generating, setGenerating] = useState(false);
-  const [selFilter, setSelFilter] = useState('');
+  const [selFilter,  setSelFilter]  = useState('');
+  const isMobile = window.innerWidth < 700;
+
+  // Persist settings when they change
+  useEffect(()=>{
+    savePrintSettings({preset,paper,layout,fontSize,cropMarks,doubleSided,backClass,customW,customH});
+  },[preset,paper,layout,fontSize,cropMarks,doubleSided,backClass,customW,customH]);
 
   const opts = {
     w: preset==='custom'?customW:CARD_PRESETS[preset].w,
     h: preset==='custom'?customH:CARD_PRESETS[preset].h,
-    paper, layout, fontSize, cropMarks,
+    paper, layout, fontSize, cropMarks, doubleSided, backClass,
   };
 
   const { perPage } = calcLayout(opts.w, opts.h, paper);
   const selectedSpells = allSpells.filter(s=>selectedNames.has(s.name));
-  const pageCount = Math.max(1, Math.ceil(selectedSpells.length/perPage));
+  const pageCount = Math.max(1, Math.ceil(selectedSpells.length/perPage)) * (doubleSided?2:1);
 
   const visibleSpells = selFilter
     ? allSpells.filter(s=>s.name.toLowerCase().includes(selFilter.toLowerCase())||
@@ -2135,211 +2346,215 @@ function PrintCardsModal({ onClose, filtered, allSpells }) {
 
   const previewSpell = selectedSpells[previewIdx] || allSpells[0];
 
-  const toggleSpell = (name) => {
-    setSelectedNames(prev => {
-      const n = new Set(prev);
-      n.has(name) ? n.delete(name) : n.add(name);
-      return n;
-    });
-  };
+  const toggleSpell = (name)=>setSelectedNames(prev=>{ const n=new Set(prev); n.has(name)?n.delete(name):n.add(name); return n; });
 
-  const doGenerate = () => {
+  const doGenerate = ()=>{
     if (!selectedSpells.length) return;
     setGenerating(true);
-    setTimeout(()=>{
-      try { generatePDF(selectedSpells, opts); }
-      catch(e){ alert('PDF generation failed: '+e.message); }
-      setGenerating(false);
-    }, 50);
+    setTimeout(()=>{ try{ generatePDF(selectedSpells,opts); }catch(e){ alert('PDF failed: '+e.message); } setGenerating(false); },50);
   };
 
-  // Quick-select actions
-  const addByClass = (cls) => setSelectedNames(prev=>{
-    const n=new Set(prev);
-    allSpells.forEach(s=>{if((s.classes||[]).includes(cls))n.add(s.name);});
-    return n;
-  });
+  const PX=90;
+  const previewContainerW = isMobile?Math.min(window.innerWidth-40,240):230;
+  const scaleX=previewContainerW/(opts.w*PX), scaleY=260/(opts.h*PX);
+  const previewScale=Math.min(scaleX,scaleY,1);
 
-  const PX_PER_IN=90;
-  const previewContainerH=280, previewContainerW=230;
-  const scaleX=previewContainerW/opts.w/PX_PER_IN, scaleY=(previewContainerH-10)/opts.h/PX_PER_IN;
-  const previewScale=Math.min(scaleX, scaleY, 1);
-
-  // Pill button style helper
   const pill=(active)=>({padding:'5px 12px',borderRadius:'20px',border:'1px solid '+(active?'var(--accent)':'var(--border2)'),background:active?'var(--accent-bg)':'transparent',color:active?'var(--accent)':'var(--text2)',cursor:'pointer',fontSize:'13px',fontWeight:active?600:400,fontFamily:'Inter,sans-serif',transition:'all 0.15s'});
-  const secLabel={fontSize:'11px',fontWeight:700,color:'var(--text3)',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:'8px'};
+  const secLabel={fontSize:'11px',fontWeight:700,color:'var(--text3)',letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:'8px',display:'block'};
 
+  const OptionsPanel = ()=>React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:'18px',padding:isMobile?'14px':'18px 20px',overflowY:'auto'}},
+    // Preset
+    React.createElement('div',null,
+      React.createElement('span',{style:secLabel},'Card Size'),
+      React.createElement('div',{style:{display:'flex',gap:'6px',flexWrap:'wrap'}},
+        Object.entries(CARD_PRESETS).map(([key,p])=>
+          React.createElement('button',{key,onClick:()=>setPreset(key),style:{...pill(preset===key),display:'flex',flexDirection:'column',alignItems:'flex-start',padding:'7px 12px',borderRadius:'10px'}},
+            React.createElement('span',{style:{fontWeight:600,fontSize:'12px'}},p.label),
+            React.createElement('span',{style:{fontSize:'10px',color:preset===key?'var(--accent2)':'var(--text3)',marginTop:'1px'}},p.sub)
+          )
+        )
+      )
+    ),
+    // Paper
+    React.createElement('div',null,
+      React.createElement('span',{style:secLabel},'Paper Size'),
+      React.createElement('div',{style:{display:'flex',gap:'8px',flexWrap:'wrap'}},
+        React.createElement('button',{onClick:()=>setPaper('letter'),style:pill(paper==='letter')},'US Letter'),
+        React.createElement('button',{onClick:()=>setPaper('a4'),style:pill(paper==='a4')},'A4')
+      )
+    ),
+    // Double-sided
+    React.createElement('div',null,
+      React.createElement('span',{style:secLabel},'Double-Sided Printing'),
+      React.createElement('label',{style:{display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',marginBottom:'8px'}},
+        React.createElement('input',{type:'checkbox',checked:doubleSided,onChange:e=>setDoubleSided(e.target.checked),style:{accentColor:'var(--accent)',width:'15px',height:'15px',cursor:'pointer'}}),
+        React.createElement('span',{style:{fontSize:'13px',color:'var(--text2)'}},'Print decorative class backs')
+      ),
+      doubleSided&&React.createElement('div',{style:{marginLeft:'25px'}},
+        React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)',marginBottom:'6px'}},'Card back design:'),
+        React.createElement('select',{value:backClass,onChange:e=>setBackClass(e.target.value),style:{padding:'5px 8px',background:'var(--bg3)',border:'1px solid var(--border2)',borderRadius:'8px',color:'var(--text)',fontSize:'13px',fontFamily:'Inter,sans-serif',cursor:'pointer'}},
+          React.createElement('option',{value:'auto'},'Auto (by spell\u2019s class)'),
+          ['Barbarian','Bard','Cleric','Druid','Fighter','Mechanist','Monk','Paladin','Ranger','Rogue','Sorcerer','Theurge','Vanguard','Warlock','Witch','Wizard'].map(c=>
+            React.createElement('option',{key:c,value:c},c)
+          )
+        )
+      )
+    ),
+    // Advanced toggle
+    React.createElement('button',{onClick:()=>setAdvanced(a=>!a),style:{...pill(advanced),alignSelf:'flex-start',display:'flex',alignItems:'center',gap:'6px'}},'\u2699 Advanced ',React.createElement('span',null,advanced?'\u25b2':'\u25bc')),
+    advanced&&React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:'14px',padding:'14px',background:'var(--bg3)',borderRadius:'12px',border:'1px solid var(--border)'}},
+      React.createElement('div',null,
+        React.createElement('span',{style:secLabel},'Layout'),
+        React.createElement('div',{style:{display:'flex',gap:'8px',flexWrap:'wrap'}},
+          [['full','Full Text'],['compact','Compact'],['notes','+ Note Lines']].map(([v,l])=>React.createElement('button',{key:v,onClick:()=>setLayout(v),style:pill(layout===v)},l))
+        )
+      ),
+      React.createElement('div',null,
+        React.createElement('span',{style:secLabel},'Font Size'),
+        React.createElement('div',{style:{display:'flex',gap:'8px',flexWrap:'wrap'}},
+          [['auto','Auto'],['small','Small'],['medium','Medium'],['large','Large']].map(([v,l])=>React.createElement('button',{key:v,onClick:()=>setFontSize(v),style:pill(fontSize===v)},l))
+        )
+      ),
+      preset==='custom'&&React.createElement('div',null,
+        React.createElement('span',{style:secLabel},'Custom Size (inches)'),
+        React.createElement('div',{style:{display:'flex',gap:'12px',alignItems:'center',flexWrap:'wrap'}},
+          React.createElement('label',{style:{fontSize:'13px',color:'var(--text2)'}},
+            'W: ',React.createElement('input',{type:'number',value:customW,min:1.5,max:4,step:0.05,onChange:e=>setCustomW(parseFloat(e.target.value)||2.5),style:{width:'60px',padding:'4px 6px',background:'var(--bg)',border:'1px solid var(--border2)',borderRadius:'6px',color:'var(--text)',fontSize:'13px',fontFamily:'Inter,sans-serif',marginLeft:'4px'}})
+          ),
+          React.createElement('label',{style:{fontSize:'13px',color:'var(--text2)'}},
+            'H: ',React.createElement('input',{type:'number',value:customH,min:2,max:6,step:0.05,onChange:e=>setCustomH(parseFloat(e.target.value)||4),style:{width:'60px',padding:'4px 6px',background:'var(--bg)',border:'1px solid var(--border2)',borderRadius:'6px',color:'var(--text)',fontSize:'13px',fontFamily:'Inter,sans-serif',marginLeft:'4px'}})
+          )
+        )
+      ),
+      React.createElement('label',{style:{display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',fontSize:'13px',color:'var(--text2)'}},
+        React.createElement('input',{type:'checkbox',checked:cropMarks,onChange:e=>setCropMarks(e.target.checked),style:{accentColor:'var(--accent)',width:'15px',height:'15px',cursor:'pointer'}}),
+        'Include crop / cut marks'
+      )
+    ),
+    // Summary
+    React.createElement('div',{style:{padding:'10px 12px',background:'var(--bg3)',borderRadius:'10px',border:'1px solid var(--border)',fontSize:'12px',color:'var(--text2)',lineHeight:'1.7'}},
+      React.createElement('div',null,'Card size: ',React.createElement('b',{style:{color:'var(--text)'}},opts.w+'" \u00d7 '+opts.h+'"')),
+      React.createElement('div',null,'Cards per page: ',React.createElement('b',{style:{color:'var(--text)'}},perPage)),
+      React.createElement('div',null,'Selected: ',React.createElement('b',{style:{color:'var(--accent)'}},selectedSpells.length,' spells')),
+      React.createElement('div',null,'Pages: ',React.createElement('b',{style:{color:'var(--accent)'}},pageCount,doubleSided?' (front+back)':''))
+    )
+  );
+
+  // ── Mobile layout ─────────────────────────────────────
+  if (isMobile) {
+    return React.createElement('div',{style:{position:'fixed',inset:0,zIndex:9000,background:'var(--bg)',display:'flex',flexDirection:'column'}},
+      // Header
+      React.createElement('div',{style:{display:'flex',alignItems:'center',padding:'12px 16px',borderBottom:'1px solid var(--border2)',flexShrink:0,gap:'10px'}},
+        React.createElement('span',{style:{fontSize:'18px',color:'var(--accent)'}},'🖨'),
+        React.createElement('div',{style:{fontSize:'16px',fontWeight:700,color:'var(--text)'}},'Print Spell Cards'),
+        React.createElement('button',{onClick:onClose,style:{marginLeft:'auto',background:'transparent',border:'none',color:'var(--text3)',fontSize:'22px',cursor:'pointer',lineHeight:1}},'×')
+      ),
+      // Scrollable body
+      React.createElement('div',{style:{flex:1,overflowY:'auto'}},
+        // Spell selection
+        React.createElement('div',{style:{padding:'12px 14px',borderBottom:'1px solid var(--border)'}},
+          React.createElement('span',{style:secLabel},'Select Spells'),
+          React.createElement('div',{style:{display:'flex',gap:'6px',marginBottom:'8px',flexWrap:'wrap'}},
+            React.createElement('button',{onClick:()=>setSelectedNames(new Set(allSpells.map(s=>s.name))),style:pill(false)},'All'),
+            React.createElement('button',{onClick:()=>setSelectedNames(new Set(filtered.map(s=>s.name))),style:pill(false)},'From filters'),
+            React.createElement('button',{onClick:()=>setSelectedNames(new Set()),style:pill(false)},'None')
+          ),
+          React.createElement('input',{placeholder:'Search…',value:selFilter,onChange:e=>setSelFilter(e.target.value),style:{width:'100%',padding:'7px 10px',background:'var(--bg3)',border:'1px solid var(--border2)',borderRadius:'8px',color:'var(--text)',fontSize:'13px',fontFamily:'Inter,sans-serif',boxSizing:'border-box'}}),
+          React.createElement('div',{style:{maxHeight:'200px',overflowY:'auto',marginTop:'8px',border:'1px solid var(--border)',borderRadius:'8px'}},
+            visibleSpells.map(s=>React.createElement('label',{key:s.name,style:{display:'flex',alignItems:'center',gap:'10px',padding:'7px 10px',borderBottom:'1px solid var(--border)',cursor:'pointer'}},
+              React.createElement('input',{type:'checkbox',checked:selectedNames.has(s.name),onChange:()=>toggleSpell(s.name),style:{accentColor:'var(--accent)',width:'14px',height:'14px',cursor:'pointer',flexShrink:0}}),
+              React.createElement('div',{style:{flex:1,minWidth:0}},
+                React.createElement('div',{style:{fontSize:'13px',fontWeight:500,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},s.name),
+                React.createElement('div',{style:{fontSize:'11px',color:'var(--text3)'}}, (s.traditions||[]).join('/')+(s.level===0?' · Cantrip':' · Cir.'+s.level))
+              )
+            ))
+          )
+        ),
+        OptionsPanel()
+      ),
+      // Footer
+      React.createElement('div',{style:{padding:'12px 14px',borderTop:'1px solid var(--border2)',flexShrink:0,background:'var(--bg)'}},
+        React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)',marginBottom:'8px',textAlign:'center'}},selectedSpells.length+' spell'+(selectedSpells.length!==1?'s':'')+' \u00b7 '+pageCount+' page'+(pageCount!==1?'s':'')),
+        React.createElement('button',{onClick:doGenerate,disabled:generating||selectedSpells.length===0,
+          style:{width:'100%',padding:'13px',background:selectedSpells.length===0?'var(--bg3)':'var(--accent)',border:'none',borderRadius:'10px',color:selectedSpells.length===0?'var(--text3)':'#1a1208',fontSize:'16px',fontWeight:700,cursor:selectedSpells.length===0?'not-allowed':'pointer',fontFamily:'Inter,sans-serif'}
+        },generating?'Generating\u2026':'\uD83D\uDDB8 Generate PDF')
+      )
+    );
+  }
+
+  // ── Desktop layout ────────────────────────────────────
   return React.createElement('div',{style:{position:'fixed',inset:0,zIndex:9000,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'stretch',justifyContent:'center'}},
     React.createElement('div',{style:{background:'var(--bg2)',width:'100%',maxWidth:'1100px',display:'flex',flexDirection:'column',height:'100%',overflow:'hidden'}},
-
       // Header
       React.createElement('div',{style:{display:'flex',alignItems:'center',padding:'14px 20px',borderBottom:'1px solid var(--border2)',flexShrink:0,gap:'12px'}},
         React.createElement('div',{style:{fontSize:'20px',color:'var(--accent)'}},'🖨'),
         React.createElement('div',null,
           React.createElement('div',{style:{fontSize:'17px',fontWeight:700,color:'var(--text)'}},'Print Spell Cards'),
-          React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)'}},'Generate a printable PDF of spell reference cards')
+          React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)'}},'Generate a printable PDF with class-themed spell cards')
         ),
         React.createElement('button',{onClick:onClose,style:{marginLeft:'auto',background:'transparent',border:'none',color:'var(--text3)',fontSize:'24px',cursor:'pointer',lineHeight:1,padding:'4px'}},'×')
       ),
-
-      // Body
+      // Body: 3 columns
       React.createElement('div',{style:{display:'flex',flex:1,overflow:'hidden'}},
-
-        // ── LEFT: Spell Selection ──
+        // LEFT: Spell selection
         React.createElement('div',{style:{width:'300px',flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',overflow:'hidden'}},
           React.createElement('div',{style:{padding:'12px 14px',borderBottom:'1px solid var(--border)',flexShrink:0}},
-            React.createElement('div',{style:secLabel},'Select Spells'),
-            React.createElement('div',{style:{display:'flex',gap:'6px',marginBottom:'8px'}},
+            React.createElement('span',{style:secLabel},'Select Spells'),
+            React.createElement('div',{style:{display:'flex',gap:'6px',marginBottom:'8px',flexWrap:'wrap'}},
               React.createElement('button',{onClick:()=>setSelectedNames(new Set(allSpells.map(s=>s.name))),style:pill(false)},'All'),
               React.createElement('button',{onClick:()=>setSelectedNames(new Set(filtered.map(s=>s.name))),style:pill(false)},'Filtered'),
               React.createElement('button',{onClick:()=>setSelectedNames(new Set()),style:pill(false)},'None')
             ),
-            React.createElement('input',{
-              placeholder:'Search spells or class…',
-              value:selFilter,
-              onChange:e=>setSelFilter(e.target.value),
-              style:{width:'100%',padding:'6px 10px',background:'var(--bg3)',border:'1px solid var(--border2)',borderRadius:'8px',color:'var(--text)',fontSize:'13px',fontFamily:'Inter,sans-serif',boxSizing:'border-box'}
-            })
+            React.createElement('input',{placeholder:'Search spells or class\u2026',value:selFilter,onChange:e=>setSelFilter(e.target.value),style:{width:'100%',padding:'6px 10px',background:'var(--bg3)',border:'1px solid var(--border2)',borderRadius:'8px',color:'var(--text)',fontSize:'13px',fontFamily:'Inter,sans-serif',boxSizing:'border-box'}})
           ),
           React.createElement('div',{style:{flex:1,overflowY:'auto',padding:'4px 0'}},
-            visibleSpells.map(s=>
-              React.createElement('label',{key:s.name,style:{display:'flex',alignItems:'center',gap:'10px',padding:'6px 14px',cursor:'pointer',borderBottom:'1px solid var(--border)',transition:'background 0.1s'},
-                onMouseEnter:e=>e.currentTarget.style.background='var(--bg3)',
-                onMouseLeave:e=>e.currentTarget.style.background='transparent'},
-                React.createElement('input',{type:'checkbox',checked:selectedNames.has(s.name),onChange:()=>toggleSpell(s.name),style:{accentColor:'var(--accent)',width:'14px',height:'14px',cursor:'pointer',flexShrink:0}}),
-                React.createElement('div',{style:{flex:1,minWidth:0}},
-                  React.createElement('div',{style:{fontSize:'13px',fontWeight:500,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},s.name),
-                  React.createElement('div',{style:{fontSize:'11px',color:'var(--text3)'}}, (s.traditions||[]).join('/')+(s.level===0?' · Cantrip':' · Circle '+s.level))
-                )
+            visibleSpells.map(s=>React.createElement('label',{key:s.name,style:{display:'flex',alignItems:'center',gap:'10px',padding:'6px 14px',cursor:'pointer',borderBottom:'1px solid var(--border)',transition:'background 0.1s'},
+              onMouseEnter:e=>e.currentTarget.style.background='var(--bg3)',
+              onMouseLeave:e=>e.currentTarget.style.background='transparent'},
+              React.createElement('input',{type:'checkbox',checked:selectedNames.has(s.name),onChange:()=>toggleSpell(s.name),style:{accentColor:'var(--accent)',width:'14px',height:'14px',cursor:'pointer',flexShrink:0}}),
+              React.createElement('div',{style:{flex:1,minWidth:0}},
+                React.createElement('div',{style:{fontSize:'13px',fontWeight:500,color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},s.name),
+                React.createElement('div',{style:{fontSize:'11px',color:'var(--text3)'}}, (s.traditions||[]).join('/')+(s.level===0?' · Cantrip':' · Cir.'+s.level))
               )
-            )
+            ))
           ),
           React.createElement('div',{style:{padding:'10px 14px',borderTop:'1px solid var(--border)',flexShrink:0,fontSize:'13px',color:'var(--text2)'}},
-            React.createElement('strong',{style:{color:'var(--accent)'}},' '+selectedSpells.length),
-            ' spell'+( selectedSpells.length!==1?'s':'')+' selected · ',
-            React.createElement('strong',{style:{color:'var(--accent)'}},pageCount),
-            ' page'+(pageCount!==1?'s':'')
+            React.createElement('strong',{style:{color:'var(--accent)'}},' '+selectedSpells.length),' spell'+(selectedSpells.length!==1?'s':'')+' \u00b7 ',
+            React.createElement('strong',{style:{color:'var(--accent)'}},pageCount),' page'+(pageCount!==1?'s':'')
           )
         ),
-
-        // ── CENTER: Options ──
-        React.createElement('div',{style:{flex:1,overflowY:'auto',padding:'18px 20px',display:'flex',flexDirection:'column',gap:'20px'}},
-
-          // Preset
-          React.createElement('div',null,
-            React.createElement('div',{style:secLabel},'Card Size Preset'),
-            React.createElement('div',{style:{display:'flex',gap:'8px',flexWrap:'wrap'}},
-              Object.entries(CARD_PRESETS).map(([key,p])=>
-                React.createElement('button',{key,onClick:()=>setPreset(key),style:{...pill(preset===key),display:'flex',flexDirection:'column',alignItems:'flex-start',padding:'8px 14px',borderRadius:'10px'}},
-                  React.createElement('span',{style:{fontWeight:600,fontSize:'13px'}},p.label),
-                  React.createElement('span',{style:{fontSize:'11px',color:preset===key?'var(--accent2)':'var(--text3)',marginTop:'2px'}},p.sub)
-                )
-              )
-            )
+        // CENTER: Options
+        React.createElement('div',{style:{flex:1,overflowY:'auto'}}, OptionsPanel()),
+        // RIGHT: Preview
+        React.createElement('div',{style:{width:'270px',flexShrink:0,borderLeft:'1px solid var(--border)',display:'flex',flexDirection:'column',alignItems:'center',padding:'16px 12px',gap:'12px',overflowY:'auto'}},
+          React.createElement('span',{style:secLabel},'Live Preview'),
+          doubleSided&&React.createElement('div',{style:{display:'flex',gap:'6px'}},
+            React.createElement('button',{onClick:()=>setPreviewSide('front'),style:pill(previewSide==='front')},'Front'),
+            React.createElement('button',{onClick:()=>setPreviewSide('back'),style:pill(previewSide==='back')},'Back')
           ),
-
-          // Paper
-          React.createElement('div',null,
-            React.createElement('div',{style:secLabel},'Paper Size'),
-            React.createElement('div',{style:{display:'flex',gap:'8px'}},
-              React.createElement('button',{onClick:()=>setPaper('letter'),style:pill(paper==='letter')},'US Letter (8.5"×11")'),
-              React.createElement('button',{onClick:()=>setPaper('a4'),style:pill(paper==='a4')},'A4 (210×297mm)')
-            )
+          React.createElement('div',{style:{transformOrigin:'top center',transform:'scale('+previewScale+')',width:opts.w*PX+'px',flexShrink:0}},
+            previewSide==='back'
+              ? React.createElement(CardBackPreview,{cls:backClass==='auto'?((previewSpell&&previewSpell.classes&&previewSpell.classes[0])||'Wizard'):backClass})
+              : React.createElement(CardPreview,{spell:previewSpell,opts})
           ),
-
-          // Advanced toggle
-          React.createElement('button',{
-            onClick:()=>setAdvanced(a=>!a),
-            style:{...pill(advanced),alignSelf:'flex-start',display:'flex',alignItems:'center',gap:'6px'}
-          },'⚙ Advanced options ',React.createElement('span',null,advanced?'▲':'▼')),
-
-          advanced&&React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:'16px',padding:'16px',background:'var(--bg3)',borderRadius:'12px',border:'1px solid var(--border)'}},
-
-            // Layout
-            React.createElement('div',null,
-              React.createElement('div',{style:secLabel},'Card Layout'),
-              React.createElement('div',{style:{display:'flex',gap:'8px',flexWrap:'wrap'}},
-                [['full','Full Text'],['compact','Compact'],['notes','+ Note Lines']].map(([v,l])=>
-                  React.createElement('button',{key:v,onClick:()=>setLayout(v),style:pill(layout===v)},l)
-                )
-              )
-            ),
-
-            // Font size
-            React.createElement('div',null,
-              React.createElement('div',{style:secLabel},'Font Size'),
-              React.createElement('div',{style:{display:'flex',gap:'8px'}},
-                [['auto','Auto'],['small','Small'],['medium','Medium'],['large','Large']].map(([v,l])=>
-                  React.createElement('button',{key:v,onClick:()=>setFontSize(v),style:pill(fontSize===v)},l)
-                )
-              )
-            ),
-
-            // Custom dimensions
-            preset==='custom'&&React.createElement('div',null,
-              React.createElement('div',{style:secLabel},'Custom Card Size'),
-              React.createElement('div',{style:{display:'flex',gap:'12px',alignItems:'center'}},
-                React.createElement('label',{style:{fontSize:'13px',color:'var(--text2)'}},
-                  'Width (in): ',
-                  React.createElement('input',{type:'number',value:customW,min:1.5,max:4,step:0.05,onChange:e=>setCustomW(parseFloat(e.target.value)||2.5),
-                    style:{width:'70px',padding:'4px 8px',background:'var(--bg)',border:'1px solid var(--border2)',borderRadius:'6px',color:'var(--text)',fontSize:'13px',fontFamily:'Inter,sans-serif',marginLeft:'6px'}})
-                ),
-                React.createElement('label',{style:{fontSize:'13px',color:'var(--text2)'}},
-                  'Height (in): ',
-                  React.createElement('input',{type:'number',value:customH,min:2,max:6,step:0.05,onChange:e=>setCustomH(parseFloat(e.target.value)||4),
-                    style:{width:'70px',padding:'4px 8px',background:'var(--bg)',border:'1px solid var(--border2)',borderRadius:'6px',color:'var(--text)',fontSize:'13px',fontFamily:'Inter,sans-serif',marginLeft:'6px'}})
-                )
-              )
-            ),
-
-            // Crop marks
-            React.createElement('label',{style:{display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',fontSize:'13px',color:'var(--text2)'}},
-              React.createElement('input',{type:'checkbox',checked:cropMarks,onChange:e=>setCropMarks(e.target.checked),style:{accentColor:'var(--accent)',width:'15px',height:'15px',cursor:'pointer'}}),
-              React.createElement('span',null,'Include crop/cut marks'),
-              React.createElement('span',{style:{fontSize:'11px',color:'var(--text3)'}},'(for precise trimming)')
-            )
-          ),
-
-          // Stats summary
-          React.createElement('div',{style:{padding:'12px 14px',background:'var(--bg3)',borderRadius:'10px',border:'1px solid var(--border)',fontSize:'13px',color:'var(--text2)',lineHeight:'1.7'}},
-            React.createElement('div',null,'Card size: ',React.createElement('strong',{style:{color:'var(--text)'}},opts.w+'" × '+opts.h+'"')),
-            React.createElement('div',null,'Cards per page: ',React.createElement('strong',{style:{color:'var(--text)'}},perPage)),
-            React.createElement('div',null,'Selected spells: ',React.createElement('strong',{style:{color:'var(--accent)'}},selectedSpells.length)),
-            React.createElement('div',null,'Pages needed: ',React.createElement('strong',{style:{color:'var(--accent)'}},pageCount))
-          )
-        ),
-
-        // ── RIGHT: Preview ──
-        React.createElement('div',{style:{width:'260px',flexShrink:0,borderLeft:'1px solid var(--border)',display:'flex',flexDirection:'column',alignItems:'center',padding:'18px 14px',gap:'14px',overflowY:'auto'}},
-          React.createElement('div',{style:secLabel},'Live Preview'),
-          React.createElement('div',{style:{transformOrigin:'top center',transform:`scale(${previewScale})`,width:opts.w*PX_PER_IN+'px',flexShrink:0}},
-            React.createElement(CardPreview,{spell:previewSpell,opts})
-          ),
-          selectedSpells.length>1&&React.createElement('div',{style:{display:'flex',alignItems:'center',gap:'10px',fontSize:'12px',color:'var(--text3)'}},
+          selectedSpells.length>1&&React.createElement('div',{style:{display:'flex',alignItems:'center',gap:'8px',fontSize:'12px',color:'var(--text3)'}},
             React.createElement('button',{onClick:()=>setPreviewIdx(i=>Math.max(0,i-1)),disabled:previewIdx===0,style:{background:'transparent',border:'1px solid var(--border2)',borderRadius:'6px',color:'var(--text2)',padding:'3px 8px',cursor:'pointer'}},'←'),
             React.createElement('span',null,(previewIdx+1),' / ',selectedSpells.length),
             React.createElement('button',{onClick:()=>setPreviewIdx(i=>Math.min(selectedSpells.length-1,i+1)),disabled:previewIdx>=selectedSpells.length-1,style:{background:'transparent',border:'1px solid var(--border2)',borderRadius:'6px',color:'var(--text2)',padding:'3px 8px',cursor:'pointer'}},'→')
           ),
-          selectedSpells.length===0&&React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)',textAlign:'center'}},'Select at least one spell')
+          selectedSpells.length===0&&React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)',textAlign:'center'}},'Select spells to preview')
         )
       ),
-
-      // Footer: Generate button
+      // Footer
       React.createElement('div',{style:{padding:'14px 20px',borderTop:'1px solid var(--border2)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'space-between',background:'var(--bg)'}},
-        React.createElement('div',{style:{fontSize:'13px',color:'var(--text3)'}},
-          selectedSpells.length+' spell'+(selectedSpells.length!==1?'s':'')+' · '+pageCount+' page'+(pageCount!==1?'s':'')+' · '+opts.w+'"×'+opts.h+'" cards on '+( paper==='a4'?'A4':'US Letter')
-        ),
-        React.createElement('button',{
-          onClick:doGenerate,
-          disabled:generating||selectedSpells.length===0,
+        React.createElement('div',{style:{fontSize:'13px',color:'var(--text3)'}},selectedSpells.length+' spell'+(selectedSpells.length!==1?'s':'')+' \u00b7 '+pageCount+' page'+(pageCount!==1?'s':'')+' \u00b7 '+opts.w+'"\u00d7'+opts.h+'" on '+(paper==='a4'?'A4':'US Letter')),
+        React.createElement('button',{onClick:doGenerate,disabled:generating||selectedSpells.length===0,
           style:{padding:'10px 28px',background:selectedSpells.length===0?'var(--bg3)':'var(--accent)',border:'none',borderRadius:'10px',color:selectedSpells.length===0?'var(--text3)':'#1a1208',fontSize:'15px',fontWeight:700,cursor:selectedSpells.length===0?'not-allowed':'pointer',fontFamily:'Inter,sans-serif',transition:'all 0.15s'}
-        }, generating?'Generating…':'🖨 Generate PDF')
+        },generating?'Generating\u2026':'\uD83D\uDDB8 Generate PDF')
       )
     )
   );
 }
-
-// ══════════════════════════════════════════════════════════════
 // TUTORIAL
 // ══════════════════════════════════════════════════════════════
 const TUTORIAL_STEPS = [
