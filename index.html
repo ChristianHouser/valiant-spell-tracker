@@ -1650,6 +1650,42 @@ function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,sh
 }
 
 // ══════════════════════════════════════════════════════════════
+// RESIZE HANDLE
+// ══════════════════════════════════════════════════════════════
+function ResizeHandle({getWidth, setWidth, min, max, invert, onReset}) {
+  const onMouseDown = (e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = getWidth();
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    const onMove = (mv) => {
+      const dx = mv.clientX - startX;
+      setWidth(Math.min(max, Math.max(min, startW + (invert ? -dx : dx))));
+    };
+    const onUp = () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
+  return React.createElement('div', {
+    onMouseDown,
+    onDoubleClick: onReset,
+    title: 'Drag to resize · Double-click to reset',
+    style: {
+      width: '5px', flexShrink: 0, cursor: 'col-resize',
+      background: 'var(--border)', transition: 'background 0.15s', zIndex: 10,
+    },
+    onMouseEnter: e => e.currentTarget.style.background = 'var(--accent2)',
+    onMouseLeave: e => e.currentTarget.style.background = 'var(--border)',
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
 // DESKTOP APP
 // ══════════════════════════════════════════════════════════════
 function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial}) {
@@ -1658,6 +1694,10 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
   const [addSpellTarget,setAddSpellTarget]=useState(null);
   const [showSettings,setShowSettings]=useState(false);
   const [showAbout,setShowAbout]=useState(false);
+  const [sidebarW,setSidebarW]=useState(()=>parseInt(localStorage.getItem('tov_sidebarW')||'240'));
+  const [detailW,setDetailW]=useState(()=>parseInt(localStorage.getItem('tov_detailW')||'360'));
+  useEffect(()=>{ localStorage.setItem('tov_sidebarW', sidebarW); },[sidebarW]);
+  useEffect(()=>{ localStorage.setItem('tov_detailW',  detailW);  },[detailW]);
   const {selTrad,selLevel,selSchool,selClass,selSub,ritualOnly,selBook,selComp,selTag,selSave,selDmg,selConc}=filters;
   const activeCount=(selTrad||[]).length+(selLevel||[]).length+(selSchool||[]).length+(selClass||[]).length+(selSub||[]).length+(ritualOnly?1:0)+(selBook||[]).length+(selComp||[]).length+(selTag||[]).length+(selSave||[]).length+(selDmg||[]).length+(selConc?1:0);
 
@@ -1677,7 +1717,7 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
       )
     ),
     tab==='spells'&&React.createElement('div',{className:'d-body'},
-      React.createElement('aside',{className:'d-sidebar'},
+      React.createElement('aside',{className:'d-sidebar',style:{width:sidebarW+'px',minWidth:sidebarW+'px'}},
         React.createElement('div',{className:'d-sidebar-search'},
           React.createElement('div',{className:'search-wrap'},
             React.createElement('span',{className:'search-icon'},'⌕'),
@@ -1690,13 +1730,15 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
           activeCount>0&&React.createElement('button',{className:'d-clear-btn',onClick:()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritualOnly:false,selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:''}))},`Clear all filters (${activeCount})`)
         )
       ),
+      React.createElement(ResizeHandle,{getWidth:()=>sidebarW,setWidth:setSidebarW,min:160,max:400,onReset:()=>setSidebarW(240)}),
       React.createElement('main',{className:'d-list-panel'},
         React.createElement('div',{className:'d-list-header'},
           React.createElement('span',{className:'d-list-count'},`${filtered.length} spell${filtered.length!==1?'s':''}`)
         ),
         React.createElement('div',{className:'d-list-scroll'},React.createElement(GroupedList,{spells:filtered,selected,onSelect:setSelected,onAddSpell:spell=>setAddSpellTarget(spell)}))
       ),
-      React.createElement('aside',{className:'d-detail'},
+      React.createElement(ResizeHandle,{getWidth:()=>detailW,setWidth:(w)=>setDetailW(w),min:240,max:600,invert:true,onReset:()=>setDetailW(360)}),
+      React.createElement('aside',{className:'d-detail',style:{width:detailW+'px',minWidth:detailW+'px'}},
         selected
           ? React.createElement('div',{className:'d-detail-inner',style:{display:'flex',flexDirection:'column',height:'100%'}},
               React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'flex-end',padding:'8px 16px',borderBottom:'1px solid var(--border)',flexShrink:0}},
