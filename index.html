@@ -1763,7 +1763,7 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
 
   return React.createElement('div',{className:'desktop-layout'},
     React.createElement('header',{className:'d-header'},
-      React.createElement('div',{className:'logo'},'ToV Spells',React.createElement('small',null,'Tales of the Valiant')),
+      React.createElement('div',{className:'logo'},'Valiant Spell Tracker',React.createElement('small',null,'')),
       React.createElement('div',{className:'d-tabs'},
         React.createElement('button',{className:`d-tab-btn${tab==='spells'?' active':''}`,onClick:()=>setTab('spells')},'✦ Spells'),
         React.createElement('button',{className:`d-tab-btn${tab==='characters'?' active':''}`,onClick:()=>setTab('characters')},'⚔ Characters')
@@ -1883,13 +1883,13 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
         onClick:e=>e.stopPropagation(),
         style:{width:'440px',maxWidth:'92vw',background:'var(--bg2)',borderRadius:'16px',padding:'32px 28px',boxShadow:'0 12px 48px rgba(0,0,0,0.4)',maxHeight:'80vh',overflowY:'auto'}
       },
-        React.createElement('div',{style:{fontSize:'52px',color:'#c99b4a',textAlign:'center',marginBottom:'12px',lineHeight:1}},'✨'),
+        React.createElement('div',{style:{fontSize:'52px',color:'#c99b4a',textAlign:'center',marginBottom:'12px',lineHeight:1}},'✦'),
         React.createElement('div',{style:{fontSize:'18px',fontWeight:700,color:'var(--text)',textAlign:'center',marginBottom:'4px'}},'Valiant Spell Tracker'),
-        React.createElement('div',{style:{fontSize:'13px',fontStyle:'italic',color:'var(--text3)',textAlign:'center',marginBottom:'20px'}},'Unofficial companion for Tales of the Valiant'),
-        React.createElement('div',{style:{fontSize:'13px',color:'var(--text2)',lineHeight:'1.7',marginBottom:'16px'}},
+        React.createElement('div',{style:{fontSize:'13px',fontStyle:'italic',color:'var(--text)',textAlign:'center',marginBottom:'20px'}},'Unofficial companion for Tales of the Valiant'),
+        React.createElement('div',{style:{fontSize:'13px',color:'var(--text)',lineHeight:'1.7',marginBottom:'16px'}},
           'Created by a Game Master running a ToV campaign — inspired by the Spells List 5e app and built for my players and fellow ToV fans.'
         ),
-        React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)',lineHeight:'1.65'}},
+        React.createElement('div',{style:{fontSize:'12px',color:'var(--text)',lineHeight:'1.65'}},
           'This app is ',React.createElement('strong',null,'not affiliated with, endorsed by, or connected to'),
           ' Kobold Press or Open Design LLC. ',React.createElement('em',null,'Tales of the Valiant'),
           ' and ToV are trademarks of Open Design LLC.',React.createElement('br',null),
