@@ -352,8 +352,50 @@ function formatDesc(desc) {
   }).filter(Boolean);
 }
 
+// ── Filter match helpers ────────────────────────────────────────
+function matchCastingTime(ct, cat) {
+  if (!ct) return false;
+  const c = ct.toLowerCase();
+  if (cat === '1 Action') return c.startsWith('1 action');
+  if (cat === '1 Bonus Action') return c.startsWith('1 bonus action');
+  if (cat === '1 Reaction') return c.startsWith('1 reaction');
+  if (cat === '1 Minute') return c.startsWith('1 minute');
+  if (cat === '10 Minutes') return c.startsWith('10 minutes');
+  if (cat === '1 Hour') return c.startsWith('1 hour');
+  if (cat === '8+ Hours') return c.startsWith('8 hours')||c.startsWith('12 hours')||c.startsWith('24 hours');
+  return false;
+}
+function matchRange(r, cat) {
+  if (!r) return false;
+  const v = r.toLowerCase();
+  if (cat === 'Self') return v.startsWith('self');
+  if (cat === 'Touch') return v.startsWith('touch');
+  if (cat === '30 ft') return v==='30 feet';
+  if (cat === '60 ft') return v==='60 feet'||v==='60 ft.';
+  if (cat === '90 ft') return v==='90 feet';
+  if (cat === '120 ft') return v==='120 feet';
+  if (cat === '150+ ft') { const m=v.match(/^(\d+)\s*f/); return !!(m&&parseInt(m[1])>=150&&!v.startsWith('self')); }
+  if (cat === 'Sight/Unlimited') return v==='sight'||v==='unlimited';
+  return false;
+}
+function matchDuration(d, cat) {
+  if (!d) return false;
+  const v = d.toLowerCase();
+  if (cat === 'Instantaneous') return v.startsWith('instantaneous');
+  if (cat === '1 Round') return v.startsWith('1 round');
+  if (cat === '1 Minute') return v==='1 minute'||v==='up to 1 minute'||(v.startsWith('concentration')&&v.includes('1 minute'));
+  if (cat === '10 Minutes') return v==='10 minutes'||(v.startsWith('concentration')&&v.includes('10 minutes'));
+  if (cat === '1 Hour') return v==='1 hour'||v==='up to 1 hour'||v==='4 hours'||(v.startsWith('concentration')&&v.includes('1 hour'));
+  if (cat === '8 Hours') return v==='8 hours'||v==='12 hours'||(v.startsWith('concentration')&&v.includes('8 hours'));
+  if (cat === '24 Hours') return v==='24 hours'||(v.startsWith('concentration')&&v.includes('24 hours'));
+  if (cat === 'Days+') return v.includes('day')||v.includes('week')||v.includes('month')||v.includes('year');
+  if (cat === 'Until Dispelled') return v.startsWith('until dispelled')||v==='permanent';
+  if (cat === 'Concentration') return v.startsWith('concentration');
+  return false;
+}
+
 function useFiltered(search, filters) {
-  const {selTrad,selLevel,selSchool,selClass,selSub,ritualOnly,selBook,selComp,selTag,selSave,selDmg,selConc} = filters;
+  const {selTrad,selLevel,selSchool,selClass,selSub,ritual,selBook,selComp,selTag,selSave,selDmg,selConc,selCast,selRange,selDur} = filters;
   return useMemo(() => {
     let s = SPELLS_DATA;
     if (search.trim()) { const q=search.toLowerCase(); s=s.filter(x=>x.name.toLowerCase().includes(q)||(x.description||'').toLowerCase().includes(q)); }
@@ -369,16 +411,20 @@ function useFiltered(search, filters) {
         return false;
       }));
     }
-    if (ritualOnly) s=s.filter(x=>x.isRitual);
+    if (ritual==='ritual') s=s.filter(x=>x.isRitual);
+    if (ritual==='noritual') s=s.filter(x=>!x.isRitual);
     if (selBook&&selBook.length) s=s.filter(x=>selBook.some(b=>(x.book||x.source||'').includes(b)));
     if (selComp&&selComp.length) s=s.filter(x=>selComp.every(c=>(x.componentList||[]).includes(c)));
     if (selTag&&selTag.length) s=s.filter(x=>selTag.some(t=>(x.tags||[]).map(tg=>tg.toLowerCase()).includes(t.toLowerCase())));
-    if (selSave&&selSave.length) s=s.filter(x=>selSave.some(sv=>(x.saves||[]).some(s2=>s2.toLowerCase().startsWith(sv.toLowerCase()))));
+    if (selSave&&selSave.length) s=s.filter(x=>selSave.some(sv=>(x.saves||[]).some(s2=>s2.toLowerCase()===sv.toLowerCase())));
     if (selDmg&&selDmg.length) s=s.filter(x=>selDmg.some(d=>(x.damageTypes||[]).some(d2=>d2.toLowerCase()===d.toLowerCase())));
     if (selConc==='yes') s=s.filter(x=>x.isConcentration===true);
     if (selConc==='no') s=s.filter(x=>x.isConcentration===false);
+    if (selCast&&selCast.length) s=s.filter(x=>selCast.some(c=>matchCastingTime(x.castingTime,c)));
+    if (selRange&&selRange.length) s=s.filter(x=>selRange.some(r=>matchRange(x.range,r)));
+    if (selDur&&selDur.length) s=s.filter(x=>selDur.some(d=>matchDuration(x.duration,d)));
     return [...s].sort((a,b)=>a.level-b.level||a.name.localeCompare(b.name));
-  }, [search,selTrad,selLevel,selSchool,selClass,selSub,ritualOnly,selBook,selComp,selTag,selSave,selDmg,selConc]);
+  }, [search,selTrad,selLevel,selSchool,selClass,selSub,ritual,selBook,selComp,selTag,selSave,selDmg,selConc,selCast,selRange,selDur]);
 }
 
 // ── SPELL ROW ──
@@ -491,7 +537,7 @@ function DetailContent({spell}) {
 
 // ── FILTER SECTIONS ──
 function FilterSections({filters,setFilters}) {
-  const {selTrad,selLevel,selSchool,selClass,selSub,ritualOnly,selBook,selComp,selTag,selSave,selDmg,selConc}=filters;
+  const {selTrad,selLevel,selSchool,selClass,selSub,ritual,selBook,selComp,selTag,selSave,selDmg,selConc,selCast,selRange,selDur}=filters;
   const tog=(key,val)=>setFilters(f=>({...f,[key]:togArr(f[key],val)}));
   const sec=(label,items,key,cls='')=>React.createElement('div',{className:'d-filter-section m-filter-section'},
     React.createElement('span',{className:'filter-label'},label),
@@ -506,6 +552,13 @@ function FilterSections({filters,setFilters}) {
         className:`chip${selConc===v.toLowerCase()?' on':''}`,
         onClick:()=>setFilters(f=>({...f,selConc:f.selConc===v.toLowerCase()?'':v.toLowerCase()}))
       },v))
+    )
+  );
+  const ritualSec=React.createElement('div',{className:'d-filter-section m-filter-section'},
+    React.createElement('span',{className:'filter-label'},'Ritual'),
+    React.createElement('div',{className:'chips'},
+      React.createElement('button',{className:`chip${ritual==='ritual'?' on':''}`,onClick:()=>setFilters(f=>({...f,ritual:f.ritual==='ritual'?'':'ritual'}))},'Rituals'),
+      React.createElement('button',{className:`chip${ritual==='noritual'?' on':''}`,onClick:()=>setFilters(f=>({...f,ritual:f.ritual==='noritual'?'':'noritual'}))},'No Rituals')
     )
   );
   // Dynamic subclasses: only show ones WITH spell tables, filtered by selected classes
@@ -527,17 +580,15 @@ function FilterSections({filters,setFilters}) {
     subSec,
     sec('Circle',LEVELS.map(l=>l===0?'Cantrip':String(l)),'selLevel'),
     sec('Tradition',TRADITIONS,'selTrad','t-'),
+    sec('Casting Time',['1 Action','1 Bonus Action','1 Reaction','1 Minute','10 Minutes','1 Hour','8+ Hours'],'selCast'),
+    sec('Range',['Self','Touch','30 ft','60 ft','90 ft','120 ft','150+ ft','Sight/Unlimited'],'selRange'),
+    sec('Duration',['Instantaneous','1 Round','1 Minute','10 Minutes','1 Hour','8 Hours','24 Hours','Days+','Until Dispelled','Concentration'],'selDur'),
     sec('Components',['V','S','M'],'selComp'),
     sec('Tag',['Damage','Utility','Buff','Control','Debuff','Summon','Healing'],'selTag'),
     sec('Saving Throw',['Strength','Constitution','Dexterity','Wisdom','Charisma','Intelligence'],'selSave'),
     sec('Damage Type',['Acid','Bludgeoning','Cold','Fire','Force','Lightning','Necrotic','Piercing','Poison','Psychic','Radiant','Slashing','Thunder'],'selDmg'),
     concSec,
-    React.createElement('div',{className:'d-filter-section m-filter-section'},
-      React.createElement('span',{className:'filter-label'},'Ritual'),
-      React.createElement('div',{className:'chips'},
-        React.createElement('button',{className:`chip${ritualOnly?' on':''}`,onClick:()=>setFilters(f=>({...f,ritualOnly:!f.ritualOnly}))},'Rituals only')
-      )
-    ),
+    ritualSec,
     sec('Book',["Player's Guide 1","Player's Guide 2"],'selBook')
   );
 }
@@ -1528,9 +1579,9 @@ function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,sh
   const [showAbout,setShowAbout]=useState(false);
   useEffect(()=>{ if(selected){ return pushBack(()=>setSelected(null)); } },[!!selected]);
   useEffect(()=>{ if(filterOpen){ return pushBack(()=>setFilterOpen(false)); } },[filterOpen]);
-  const {selTrad,selLevel,selSchool,selClass,selSub,ritualOnly,selBook,selComp,selTag,selSave,selDmg,selConc}=filters;
-  const activeCount=(selTrad||[]).length+(selLevel||[]).length+(selSchool||[]).length+(selClass||[]).length+(selSub||[]).length+(ritualOnly?1:0)+(selBook||[]).length+(selComp||[]).length+(selTag||[]).length+(selSave||[]).length+(selDmg||[]).length+(selConc?1:0);
-  const clearFilters=()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritualOnly:false,selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:''}));
+  const {selTrad,selLevel,selSchool,selClass,selSub,ritual,selBook,selComp,selTag,selSave,selDmg,selConc,selCast,selRange,selDur}=filters;
+  const activeCount=(selTrad||[]).length+(selLevel||[]).length+(selSchool||[]).length+(selClass||[]).length+(selSub||[]).length+(ritual?1:0)+(selBook||[]).length+(selComp||[]).length+(selTag||[]).length+(selSave||[]).length+(selDmg||[]).length+(selConc?1:0)+(selCast||[]).length+(selRange||[]).length+(selDur||[]).length;
+  const clearFilters=()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]}));
 
   useEffect(()=>{ document.body.style.overflow=selected?'hidden':''; return ()=>{document.body.style.overflow=''}; },[selected]);
 
@@ -1706,8 +1757,8 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
   const [detailW,setDetailW]=useState(()=>parseInt(localStorage.getItem('tov_detailW')||'360'));
   useEffect(()=>{ localStorage.setItem('tov_sidebarW', sidebarW); },[sidebarW]);
   useEffect(()=>{ localStorage.setItem('tov_detailW',  detailW);  },[detailW]);
-  const {selTrad,selLevel,selSchool,selClass,selSub,ritualOnly,selBook,selComp,selTag,selSave,selDmg,selConc}=filters;
-  const activeCount=(selTrad||[]).length+(selLevel||[]).length+(selSchool||[]).length+(selClass||[]).length+(selSub||[]).length+(ritualOnly?1:0)+(selBook||[]).length+(selComp||[]).length+(selTag||[]).length+(selSave||[]).length+(selDmg||[]).length+(selConc?1:0);
+  const {selTrad,selLevel,selSchool,selClass,selSub,ritual,selBook,selComp,selTag,selSave,selDmg,selConc,selCast,selRange,selDur}=filters;
+  const activeCount=(selTrad||[]).length+(selLevel||[]).length+(selSchool||[]).length+(selClass||[]).length+(selSub||[]).length+(ritual?1:0)+(selBook||[]).length+(selComp||[]).length+(selTag||[]).length+(selSave||[]).length+(selDmg||[]).length+(selConc?1:0)+(selCast||[]).length+(selRange||[]).length+(selDur||[]).length;
 
   return React.createElement('div',{className:'desktop-layout'},
     React.createElement('header',{className:'d-header'},
@@ -1742,7 +1793,7 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
         ),
         React.createElement('div',{className:'d-sidebar-filters'},
           React.createElement(FilterSections,{filters,setFilters}),
-          activeCount>0&&React.createElement('button',{className:'d-clear-btn',onClick:()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritualOnly:false,selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:''}))},`Clear all filters (${activeCount})`)
+          activeCount>0&&React.createElement('button',{className:'d-clear-btn',onClick:()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]}))},`Clear all filters (${activeCount})`)
         )
       ),
       React.createElement(ResizeHandle,{getWidth:()=>sidebarW,setWidth:setSidebarW,min:160,max:400,onReset:()=>setSidebarW(240)}),
@@ -2620,7 +2671,7 @@ function App() {
   const [showTutorial,setShowTutorial]=useState(false);
   const [showPrint,setShowPrint]=useState(false);
   const [search,setSearch]=useState('');
-  const [filters,setFilters]=useState({selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritualOnly:false,selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:''});
+  const [filters,setFilters]=useState({selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]});
   useEffect(()=>{ document.body.classList.toggle('light',!dark); },[dark]);
   const filtered=useFiltered(search,filters);
   const shared={dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint};
