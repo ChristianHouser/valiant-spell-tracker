@@ -962,6 +962,14 @@ function CharacterDetail({character, onBack, onUpdate}) {
   const scrollRef = useRef(null);
   const headerContentRef = useRef(null);
   const saveRef = useRef(null);
+  const [cdFilterOpen,setCdFilterOpen]=useState(false);
+  const [cdConc,setCdConc]=useState('');
+  const [cdRitual,setCdRitual]=useState('');
+  const [cdCast,setCdCast]=useState('');
+  const [cdDmg,setCdDmg]=useState([]);
+  const [cdTag,setCdTag]=useState([]);
+  const [cdDmgOpen,setCdDmgOpen]=useState(false);
+  const [cdTagOpen,setCdTagOpen]=useState(false);
 
   const totalSlots = calcSpellSlots(character);
   const maxCircle = maxSpellCircle(character);
@@ -1025,6 +1033,8 @@ function CharacterDetail({character, onBack, onUpdate}) {
     if(!character.classes.length)return[];
     return SPELLS_DATA.filter(s=>s.classes.some(c=>character.classes.includes(c))&&(maxCircle===0?s.level===0:s.level<=maxCircle)).sort((a,b)=>a.level-b.level||a.name.localeCompare(b.name));
   },[character.classes,maxCircle]);
+  const allDmgTypes=useMemo(()=>{const s=new Set();classSpells.forEach(x=>(x.damageTypes||[]).forEach(d=>s.add(d)));return[...s].sort();},[classSpells]);
+  const allTags=useMemo(()=>{const s=new Set();classSpells.forEach(x=>(x.tags||[]).forEach(t=>s.add(t)));return[...s].sort();},[classSpells]);
 
   const toggleKnown=(n)=>{
     const wasKnown=knownSpells.includes(n);
@@ -1048,6 +1058,11 @@ function CharacterDetail({character, onBack, onUpdate}) {
 
   const knownObjs=SPELLS_DATA.filter(s=>knownSpells.includes(s.name)).sort((a,b)=>a.level-b.level||a.name.localeCompare(b.name));
   const preparedObjs=SPELLS_DATA.filter(s=>preparedSpells.includes(s.name)).sort((a,b)=>a.level-b.level||a.name.localeCompare(b.name));
+  const cdActiveCount=(cdConc?1:0)+(cdRitual?1:0)+(cdCast?1:0)+cdDmg.length+cdTag.length;
+  const applyDetailFilters=spells=>{let s=spells;if(cdConc==='yes')s=s.filter(x=>x.isConcentration);if(cdConc==='no')s=s.filter(x=>!x.isConcentration);if(cdRitual==='yes')s=s.filter(x=>x.isRitual);if(cdRitual==='no')s=s.filter(x=>!x.isRitual);if(cdCast==='reaction')s=s.filter(x=>x.castingTime&&x.castingTime.toLowerCase().includes('reaction'));if(cdCast==='bonus')s=s.filter(x=>x.castingTime&&x.castingTime.toLowerCase().includes('bonus'));if(cdDmg.length)s=s.filter(x=>cdDmg.some(d=>(x.damageTypes||[]).includes(d)));if(cdTag.length)s=s.filter(x=>cdTag.some(t=>(x.tags||[]).includes(t)));return s;};
+  const filteredClass=applyDetailFilters(classSpells);
+  const filteredKnown=applyDetailFilters(knownObjs);
+  const filteredPrepared=applyDetailFilters(preparedObjs);
   // Auto-count prepared spells: exclude cantrips and Cleric always-prepared domain spells
   const autoPreparedCount=useMemo(()=>
     SPELLS_DATA.filter(s=>
@@ -1307,7 +1322,14 @@ function CharacterDetail({character, onBack, onUpdate}) {
               })
             )
           ),
-        React.createElement('button',{onClick:resetSlots,style:{display:'block',margin:'0 auto 8px',background:'transparent',border:'1px solid rgba(255,255,255,0.35)',borderRadius:'8px',color:'rgba(255,255,255,0.85)',fontSize:'13px',padding:'5px 18px',cursor:'pointer',fontFamily:'Inter,sans-serif'}},'Reset used slots'),
+        React.createElement('div',{style:{position:'relative',display:'flex',alignItems:'center',justifyContent:'center',marginBottom:'8px',padding:'0 16px'}},
+          React.createElement('button',{onClick:resetSlots,style:{background:'transparent',border:'1px solid rgba(255,255,255,0.35)',borderRadius:'8px',color:'rgba(255,255,255,0.85)',fontSize:'13px',padding:'5px 18px',cursor:'pointer',fontFamily:'Inter,sans-serif'}},'Reset used slots'),
+          React.createElement('button',{onClick:()=>{setCdFilterOpen(o=>!o);setCdDmgOpen(false);setCdTagOpen(false);},title:cdActiveCount>0?`Filters (${cdActiveCount})`:'Filters',style:{position:'absolute',right:'16px',background:'transparent',border:'1px solid '+(cdFilterOpen||cdActiveCount>0?'var(--accent)':'rgba(255,255,255,0.35)'),borderRadius:'8px',padding:'5px 8px',cursor:'pointer',display:'flex',alignItems:'center',color:cdFilterOpen||cdActiveCount>0?'var(--accent)':'rgba(255,255,255,0.7)'}},
+            React.createElement('svg',{width:18,height:18,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'},
+              React.createElement('polygon',{points:'22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3'})
+            )
+          )
+        ),
         React.createElement('div',{style:{display:'flex',gap:'8px',marginBottom:'8px'}},
           React.createElement('div',{style:{flex:1,background:'rgba(255,255,255,0.1)',borderRadius:'10px',border:'1px solid rgba(255,255,255,0.2)',padding:'8px',textAlign:'center'}},
             React.createElement('div',{style:{color:'#fff',fontSize:'22px',fontWeight:700,lineHeight:'1.2',fontFamily:'Inter,sans-serif'}},String(autoPreparedCount)),
@@ -1323,17 +1345,40 @@ function CharacterDetail({character, onBack, onUpdate}) {
         ),
       ),
 
-      // ── STICKY TAB BAR — direct child of scroll container so sticky works ──
-      React.createElement('div',{style:{display:'flex',background:'#1a3a5c',borderTop:'1px solid rgba(255,255,255,0.1)',position:'sticky',top:0,zIndex:20,boxShadow:'0 2px 8px rgba(0,0,0,0.5)'}},
-        ['Known','Prepared','Class'].map(t=>React.createElement('button',{key:t,onClick:()=>setSubTab(t.toLowerCase()),style:{flex:1,padding:'12px',background:'transparent',border:'none',borderBottom:subTab===t.toLowerCase()?'2px solid #fff':'2px solid transparent',color:subTab===t.toLowerCase()?'#fff':'rgba(255,255,255,0.6)',fontSize:'14px',fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}},t))
+      // ── STICKY TAB BAR + FILTER PANEL ──
+      React.createElement('div',{style:{position:'sticky',top:0,zIndex:20,boxShadow:'0 2px 8px rgba(0,0,0,0.5)'}},
+        React.createElement('div',{style:{display:'flex',background:'#1a3a5c',borderTop:'1px solid rgba(255,255,255,0.1)'}},
+          ['Known','Prepared','Class'].map(t=>React.createElement('button',{key:t,onClick:()=>setSubTab(t.toLowerCase()),style:{flex:1,padding:'12px',background:'transparent',border:'none',borderBottom:subTab===t.toLowerCase()?'2px solid #fff':'2px solid transparent',color:subTab===t.toLowerCase()?'#fff':'rgba(255,255,255,0.6)',fontSize:'14px',fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}},t))
+        ),
+        cdFilterOpen&&React.createElement('div',{style:{background:'var(--bg2)',borderBottom:'1px solid var(--border)',padding:'8px 12px',display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center',position:'relative'}},
+          (cdDmgOpen||cdTagOpen)&&React.createElement('div',{style:{position:'fixed',inset:0,zIndex:25},onClick:()=>{setCdDmgOpen(false);setCdTagOpen(false);}}),
+          React.createElement('button',{className:`chip${cdConc==='yes'?' on':''}`,onClick:()=>setCdConc(c=>c==='yes'?'':'yes')},'✓ Concentration'),
+          React.createElement('button',{className:`chip${cdConc==='no'?' on':''}`,onClick:()=>setCdConc(c=>c==='no'?'':'no')},'✗ Concentration'),
+          React.createElement('button',{className:`chip${cdCast==='reaction'?' on':''}`,onClick:()=>setCdCast(c=>c==='reaction'?'':'reaction')},'Reaction'),
+          React.createElement('button',{className:`chip${cdCast==='bonus'?' on':''}`,onClick:()=>setCdCast(c=>c==='bonus'?'':'bonus')},'Bonus Action'),
+          React.createElement('button',{className:`chip${cdRitual==='yes'?' on':''}`,onClick:()=>setCdRitual(c=>c==='yes'?'':'yes')},'✓ Ritual'),
+          React.createElement('button',{className:`chip${cdRitual==='no'?' on':''}`,onClick:()=>setCdRitual(c=>c==='no'?'':'no')},'✗ Ritual'),
+          React.createElement('div',{style:{position:'relative',zIndex:26}},
+            React.createElement('button',{className:`chip${cdDmg.length?' on':''}`,onClick:e=>{e.stopPropagation();setCdDmgOpen(o=>!o);setCdTagOpen(false);}},`Damage Type${cdDmg.length?` (${cdDmg.length})`:''} ▾`),
+            cdDmgOpen&&React.createElement('div',{style:{position:'absolute',top:'calc(100% + 4px)',left:0,zIndex:27,background:'var(--bg2)',border:'1px solid var(--border2)',borderRadius:'10px',padding:'10px',boxShadow:'0 4px 16px rgba(0,0,0,0.25)',display:'flex',flexWrap:'wrap',gap:'6px',minWidth:'200px',maxWidth:'300px'}},
+              allDmgTypes.map(d=>React.createElement('button',{key:d,className:`chip${cdDmg.includes(d)?' on':''}`,onClick:e=>{e.stopPropagation();setCdDmg(prev=>prev.includes(d)?prev.filter(x=>x!==d):[...prev,d]);}},d))
+            )
+          ),
+          React.createElement('div',{style:{position:'relative',zIndex:26}},
+            React.createElement('button',{className:`chip${cdTag.length?' on':''}`,onClick:e=>{e.stopPropagation();setCdTagOpen(o=>!o);setCdDmgOpen(false);}},`Tag${cdTag.length?` (${cdTag.length})`:''} ▾`),
+            cdTagOpen&&React.createElement('div',{style:{position:'absolute',top:'calc(100% + 4px)',left:0,zIndex:27,background:'var(--bg2)',border:'1px solid var(--border2)',borderRadius:'10px',padding:'10px',boxShadow:'0 4px 16px rgba(0,0,0,0.25)',display:'flex',flexWrap:'wrap',gap:'6px',minWidth:'200px',maxWidth:'300px'}},
+              allTags.map(t=>React.createElement('button',{key:t,className:`chip${cdTag.includes(t)?' on':''}`,onClick:e=>{e.stopPropagation();setCdTag(prev=>prev.includes(t)?prev.filter(x=>x!==t):[...prev,t]);}},t))
+            )
+          )
+        )
       ),
 
       // ── SPELL LIST (flows below the sticky tab bar) ──
       React.createElement('div',{style:{minHeight:'100%'}},
         subTab==='class'&&React.createElement('div',null,
-          classSpells.length===0
-            ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},'No spells available.')
-            :groupByLevel(classSpells).map(g=>React.createElement('div',{key:g.level},
+          filteredClass.length===0
+            ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},cdActiveCount>0?'No spells match the active filters.':'No spells available.')
+            :groupByLevel(filteredClass).map(g=>React.createElement('div',{key:g.level},
                 React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:false,showEye:true}),
                 !collapsedLevels.has(g.level)&&g.spells.map(s=>React.createElement(SpellRowFull,{key:s.name,s,
                   btnLabel:'Know',
@@ -1343,9 +1388,9 @@ function CharacterDetail({character, onBack, onUpdate}) {
               ))
         ),
         subTab==='known'&&React.createElement('div',null,
-          knownObjs.length===0
-            ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},'No spells known yet. Go to Class tab to add spells.')
-            :groupByLevel(knownObjs).map(g=>React.createElement('div',{key:g.level},
+          filteredKnown.length===0
+            ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},cdActiveCount>0?'No spells match the active filters.':'No spells known yet. Go to Class tab to add spells.')
+            :groupByLevel(filteredKnown).map(g=>React.createElement('div',{key:g.level},
                 React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:true}),
                 g.spells.map(s=>React.createElement(SpellRowFull,{key:s.name,s,
                   btnLabel:'Prepare',
@@ -1355,9 +1400,9 @@ function CharacterDetail({character, onBack, onUpdate}) {
               ))
         ),
         subTab==='prepared'&&React.createElement('div',null,
-          preparedObjs.length===0
-            ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},'No spells prepared yet. Go to Known tab to prepare spells.')
-            :groupByLevel(preparedObjs).map(g=>React.createElement('div',{key:g.level},
+          filteredPrepared.length===0
+            ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},cdActiveCount>0?'No spells match the active filters.':'No spells prepared yet. Go to Known tab to prepare spells.')
+            :groupByLevel(filteredPrepared).map(g=>React.createElement('div',{key:g.level},
                 React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:true}),
                 g.spells.map(s=>React.createElement(SpellRowPrepared,{key:s.name,s,onOpen:()=>setViewingSpell(s)}))
               ))
