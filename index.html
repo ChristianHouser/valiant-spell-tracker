@@ -1352,6 +1352,7 @@ function CharacterDetail({character, onBack, onUpdate}) {
         ),
         cdFilterOpen&&React.createElement('div',{style:{background:'var(--bg2)',borderBottom:'1px solid var(--border)',padding:'8px 12px',display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center',position:'relative'}},
           (cdDmgOpen||cdTagOpen)&&React.createElement('div',{style:{position:'fixed',inset:0,zIndex:25},onClick:()=>{setCdDmgOpen(false);setCdTagOpen(false);}}),
+          cdActiveCount>0&&React.createElement('button',{className:'chip on',style:{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent)'},onClick:()=>{setCdConc('');setCdRitual('');setCdCast('');setCdDmg([]);setCdTag([]);}},`Clear all (${cdActiveCount})`),
           React.createElement('button',{className:`chip${cdConc==='yes'?' on':''}`,onClick:()=>setCdConc(c=>c==='yes'?'':'yes')},'✓ Concentration'),
           React.createElement('button',{className:`chip${cdConc==='no'?' on':''}`,onClick:()=>setCdConc(c=>c==='no'?'':'no')},'✗ Concentration'),
           React.createElement('button',{className:`chip${cdCast==='reaction'?' on':''}`,onClick:()=>setCdCast(c=>c==='reaction'?'':'reaction')},'Reaction'),
@@ -1360,13 +1361,13 @@ function CharacterDetail({character, onBack, onUpdate}) {
           React.createElement('button',{className:`chip${cdRitual==='no'?' on':''}`,onClick:()=>setCdRitual(c=>c==='no'?'':'no')},'✗ Ritual'),
           React.createElement('div',{style:{position:'relative',zIndex:26}},
             React.createElement('button',{className:`chip${cdDmg.length?' on':''}`,onClick:e=>{e.stopPropagation();setCdDmgOpen(o=>!o);setCdTagOpen(false);}},`Damage Type${cdDmg.length?` (${cdDmg.length})`:''} ▾`),
-            cdDmgOpen&&React.createElement('div',{style:{position:'absolute',top:'calc(100% + 4px)',left:0,zIndex:27,background:'var(--bg2)',border:'1px solid var(--border2)',borderRadius:'10px',padding:'10px',boxShadow:'0 4px 16px rgba(0,0,0,0.25)',display:'flex',flexWrap:'wrap',gap:'6px',minWidth:'200px',maxWidth:'300px'}},
+            cdDmgOpen&&React.createElement('div',{style:{position:'absolute',top:'calc(100% + 4px)',right:0,left:'auto',zIndex:27,background:'var(--bg2)',border:'1px solid var(--border2)',borderRadius:'10px',padding:'10px',boxShadow:'0 4px 16px rgba(0,0,0,0.25)',display:'flex',flexWrap:'wrap',gap:'6px',minWidth:'200px',maxWidth:'min(300px, calc(100vw - 24px))'}},
               allDmgTypes.map(d=>React.createElement('button',{key:d,className:`chip${cdDmg.includes(d)?' on':''}`,onClick:e=>{e.stopPropagation();setCdDmg(prev=>prev.includes(d)?prev.filter(x=>x!==d):[...prev,d]);}},d))
             )
           ),
           React.createElement('div',{style:{position:'relative',zIndex:26}},
             React.createElement('button',{className:`chip${cdTag.length?' on':''}`,onClick:e=>{e.stopPropagation();setCdTagOpen(o=>!o);setCdDmgOpen(false);}},`Tag${cdTag.length?` (${cdTag.length})`:''} ▾`),
-            cdTagOpen&&React.createElement('div',{style:{position:'absolute',top:'calc(100% + 4px)',left:0,zIndex:27,background:'var(--bg2)',border:'1px solid var(--border2)',borderRadius:'10px',padding:'10px',boxShadow:'0 4px 16px rgba(0,0,0,0.25)',display:'flex',flexWrap:'wrap',gap:'6px',minWidth:'200px',maxWidth:'300px'}},
+            cdTagOpen&&React.createElement('div',{style:{position:'absolute',top:'calc(100% + 4px)',right:0,left:'auto',zIndex:27,background:'var(--bg2)',border:'1px solid var(--border2)',borderRadius:'10px',padding:'10px',boxShadow:'0 4px 16px rgba(0,0,0,0.25)',display:'flex',flexWrap:'wrap',gap:'6px',minWidth:'200px',maxWidth:'min(300px, calc(100vw - 24px))'}},
               allTags.map(t=>React.createElement('button',{key:t,className:`chip${cdTag.includes(t)?' on':''}`,onClick:e=>{e.stopPropagation();setCdTag(prev=>prev.includes(t)?prev.filter(x=>x!==t):[...prev,t]);}},t))
             )
           )
