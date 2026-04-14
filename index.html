@@ -1814,8 +1814,8 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
           )
         ),
         React.createElement('div',{className:'d-sidebar-filters'},
-          React.createElement(FilterSections,{filters,setFilters}),
-          activeCount>0&&React.createElement('button',{className:'d-clear-btn',onClick:()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]}))},`Clear all filters (${activeCount})`)
+          React.createElement('button',{className:'d-clear-btn',style:{marginTop:0,marginBottom:'10px',...(activeCount>0?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent)'}:{})},onClick:()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]}))},activeCount>0?`Clear all filters (${activeCount})`:'Clear all filters'),
+          React.createElement(FilterSections,{filters,setFilters})
         )
       ),
       !hideSidebar&&React.createElement(ResizeHandle,{getWidth:()=>sidebarW,setWidth:setSidebarW,min:240,max:400,onReset:()=>setSidebarW(360)}),
@@ -1904,8 +1904,8 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
           search&&React.createElement('button',{onClick:()=>setSearch(''),style:{position:'absolute',right:'10px',top:'50%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'var(--text3)',fontSize:'18px',cursor:'pointer',lineHeight:1,padding:'0 2px'}},'×')
         )
       ),
-      activeCount>0&&React.createElement('div',{className:'d-filter-clear-bar'},
-        React.createElement('button',{className:'d-clear-btn',style:{margin:0},onClick:()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]}))},`Clear all filters (${activeCount})`)
+      React.createElement('div',{className:'d-filter-clear-bar'},
+        React.createElement('button',{className:'d-clear-btn',style:{margin:0,...(activeCount>0?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent)'}:{})},onClick:()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]}))},activeCount>0?`Clear all filters (${activeCount})`:'Clear all filters')
       ),
       React.createElement('div',{className:'d-filter-dropdown-scroll'},
         React.createElement(FilterSections,{filters,setFilters})
