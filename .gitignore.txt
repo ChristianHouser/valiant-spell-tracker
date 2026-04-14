@@ -1,0 +1,30 @@
+# Large data files - ignore raw JSON
+spells.json
+spells-raw.json
+*.json
+
+# Keep only the cleaned version (uncomment when ready)
+# !cleaned-spells.json
+
+# Build and temporary files
+/dist
+/build
+/node_modules
+/.expo
+/android
+/ios
+
+# Logs
+*.log
+*.tmp
+
+# Environment files
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
