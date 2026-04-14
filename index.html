@@ -1629,7 +1629,7 @@ function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,sh
     ),
     tab==='spells'&&React.createElement('div',{className:`m-filter-overlay${filterOpen?' open':''}`,onClick:e=>{if(e.target===e.currentTarget)setFilterOpen(false);}},
       React.createElement('div',{className:'m-filter-actions'},
-        activeCount>0&&React.createElement('button',{className:'m-clear-btn',onClick:clearFilters},`Clear all (${activeCount})`),
+        React.createElement('button',{className:'m-clear-btn',style:activeCount>0?{background:'var(--accent-bg)',borderColor:'var(--accent)',color:'var(--accent)'}:{},onClick:clearFilters},activeCount>0?`Clear all (${activeCount})`:'Clear all'),
         React.createElement('button',{className:'m-done-btn',onClick:()=>setFilterOpen(false)},'Done')
       ),
       React.createElement('div',{className:'m-filter-panel'},
