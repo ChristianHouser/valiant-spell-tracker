@@ -1088,14 +1088,17 @@ function CharacterDetail({character, onBack, onUpdate}) {
     const hasSlots=showCircles&&level>0&&totalSlots[level-1]>0;
     const isExp=expandedCircle===level;
     const isHidden=collapsedLevels.has(level);
+    // Right-column width matches the spell-row right column
     const rightW=72;
     return React.createElement('div',{
       className:'level-header',style:{position:'sticky',top:0,zIndex:5,padding:isExp?'8px 16px 10px':'8px 16px'}
     },
       React.createElement('div',{style:{display:'flex',alignItems:'center',width:'100%'}},
+        // Left: circle name — same fixed width as right col so center is truly centered
         React.createElement('div',{style:{minWidth:rightW,flexShrink:0}},
           React.createElement('span',{className:'level-header-name',style:{whiteSpace:'nowrap'}},(CIRCLE_NAMES[level]))
         ),
+        // Center: fills remaining space, circles centered inside
         React.createElement('div',{style:{flex:1,display:'flex',justifyContent:'center',alignItems:'center',cursor:hasSlots?'pointer':'default'},
           onClick:hasSlots?(e)=>{e.stopPropagation();tapCircle(level);}:undefined
         },
@@ -1116,6 +1119,7 @@ function CharacterDetail({character, onBack, onUpdate}) {
             )
           )
         ),
+        // Right: spell count + optional eye icon
         React.createElement('div',{style:{width:rightW,flexShrink:0,display:'flex',flexDirection:'column',justifyContent:'center',alignItems:'flex-end',gap:'3px'}},
           React.createElement('span',{className:'level-header-count',style:{whiteSpace:'nowrap'}},count+' Spells'),
           showEye&&React.createElement('button',{
@@ -1136,6 +1140,7 @@ function CharacterDetail({character, onBack, onUpdate}) {
 
   // Full spell row matching main SpellRow layout exactly
   function SpellRowFull({s,btnLabel,btnActive,onToggle,onOpen}){
+    // btnLabel is always the BASE label ('Know' or 'Prepare')
     const label = btnActive ? (btnLabel==='Know' ? 'Known' : 'Prepared') : btnLabel;
     return React.createElement('div',{className:'spell-row',style:{paddingLeft:'10px',alignItems:'flex-start'}},
       React.createElement('div',{className:'spell-info',onClick:()=>onOpen(s),style:{cursor:'pointer'}},
@@ -1238,206 +1243,125 @@ function CharacterDetail({character, onBack, onUpdate}) {
     );
   }
 
-  // UPDATED RETURN - Narrower on desktop
-  return React.createElement('div',{
-    style:{position:'fixed',inset:0,background:'var(--bg)',zIndex:700,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}
-  },
-    React.createElement('div',{
-      style:{
-        width:'100%',
-        maxWidth:'620px',           // ← This makes it much narrower (change to 560 or 680 if you prefer)
-        height:'100%',
-        background:'var(--bg)',
-        display:'flex',
-        flexDirection:'column',
-        overflow:'hidden',
-        boxShadow:'0 10px 60px rgba(0,0,0,0.65)',
-        borderRadius:'12px',
-        margin:'20px',
-        border:'1px solid var(--border2)'
-      }
-    },
+  // Compute how much header scrolls away (everything except name bar + tabs)
+  // Max scroll = full collapsible section height
+  // ── KEY INSIGHT: one scroll container, tab bar is position:sticky ──
+  // Header content scrolls away naturally; tab bar sticks to top when reached.
 
-      // Single scroll container
-      React.createElement('div',{ref:scrollRef,onScroll:handleScroll,onClick:handleListClick,
-        style:{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch',background:'var(--bg)'}},
+  return React.createElement('div',{style:{position:'fixed',inset:0,background:'var(--bg)',zIndex:700,display:'flex',flexDirection:'column',overflow:'hidden'}},
+    // Single scroll container — everything scrolls together
+    React.createElement('div',{ref:scrollRef,onScroll:handleScroll,onClick:handleListClick,
+      style:{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch',background:'var(--bg)'}},
 
-                // ── BLUE HEADER (scrolls away) ──
-        React.createElement('div',{style:{background:'#1a3a5c'}},
-          // Back / name row
-          React.createElement('div',{style:{display:'flex',alignItems:'center',padding:'12px 16px',gap:'12px'}},
-            React.createElement('button',{onClick:onBack,style:{background:'transparent',border:'none',color:'rgba(255,255,255,0.8)',fontSize:'22px',cursor:'pointer',padding:'0 4px',lineHeight:1}},'‹'),
-            React.createElement('div',{style:{flex:1,textAlign:'center'}},
-              React.createElement('div',{style:{fontSize:'17px',fontWeight:700,color:'#fff'}},character.name),
-              React.createElement('div',{style:{fontSize:'13px',color:'rgba(255,255,255,0.7)'}},classLabel)
-            ),
-            React.createElement('button',{
-              onClick:()=>setEditingChar(true),
-              title:'Edit character',
-              style:{background:'transparent',border:'none',cursor:'pointer',padding:'2px',width:'32px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}
-            },
-              React.createElement('svg',{width:22,height:22,viewBox:'0 0 24 24',fill:'none',stroke:'rgba(255,255,255,0.85)',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'},
-                React.createElement('rect',{x:3,y:3,width:18,height:18,rx:3,ry:3,stroke:'rgba(255,255,255,0.85)',fill:'none'}),
-                React.createElement('path',{d:'M14.5 6.5l3 3L10 17H7v-3L14.5 6.5z'}),
-                React.createElement('path',{d:'M13 8l3 3'})
-              )
-            )
+      // ── BLUE HEADER (scrolls away) ──
+      React.createElement('div',{style:{background:'#1a3a5c'}},
+        // Back / name row
+        React.createElement('div',{style:{display:'flex',alignItems:'center',padding:'12px 16px',gap:'12px'}},
+          React.createElement('button',{onClick:onBack,style:{background:'transparent',border:'none',color:'rgba(255,255,255,0.8)',fontSize:'22px',cursor:'pointer',padding:'0 4px',lineHeight:1}},'‹'),
+          React.createElement('div',{style:{flex:1,textAlign:'center'}},
+            React.createElement('div',{style:{fontSize:'17px',fontWeight:700,color:'#fff'}},character.name),
+            React.createElement('div',{style:{fontSize:'13px',color:'rgba(255,255,255,0.7)'}},classLabel)
           ),
-
-          // Collapsible slot section
-          React.createElement('div',{ref:headerContentRef,style:{padding:'0 16px 4px'}},
-            
-            // Spell Slots title + collapse button (moved to right)
-            React.createElement('div',{style:{display:'flex',alignItems:'Center',justifyContent:'space-between',marginBottom:'8px'}},
-              React.createElement('div',{style:{fontSize:'15px',fontWeight:700,color:'#fff'}},'Spell Slots'),
-              React.createElement('button',{
-                onClick:()=>setSlotsCollapsed(c=>!c),
-                style:{background:'transparent',border:'none',color:'rgba(255,255,255,0.7)',fontSize:'18px',cursor:'pointer',padding:'0 8px'}
-              }, slotsCollapsed ? '▼' : '▲')
-            ),
-
-            !slotsCollapsed && React.createElement('div',null,
-              // Row 1: Circle
-              React.createElement('div',{style:{display:'flex',gap:'4px',justifyContent:'center',marginBottom:'2px'}},
-                React.createElement('div',{style:{width:'38px',fontSize:'11px',color:'#fff',textAlign:'left',paddingRight:'4px'}},'Circle'),
-                [1,2,3,4,5,6,7,8,9].map(c=>React.createElement('div',{key:c,style:{width:'28px',textAlign:'center',fontSize:'12px',color:'rgba(255,255,255,0.7)',fontWeight:600}},c))
-              ),
-
-              // Row 2: Total Slots (changed - no longer shows remaining)
-              React.createElement('div',{style:{display:'flex',gap:'4px',justifyContent:'center',marginBottom:'2px'}},
-                React.createElement('div',{style:{width:'38px',fontSize:'11px',color:'#fff',textAlign:'left',paddingRight:'4px'}},'Slots'),
-                [1,2,3,4,5,6,7,8,9].map(c=>{
-                  const total = totalSlots[c-1];
-                  return React.createElement('div',{
-                    key:c,
-                    style:{width:'28px',textAlign:'center',fontSize:'14px',fontWeight:700,color:total===0?'rgba(255,255,255,0.2)':'#fff',lineHeight:'22px'}
-                  }, total === 0 ? '—' : total);
-                })
-              ),
-
-              // Row 3: Remaining (NEW)
-              React.createElement('div',{style:{display:'flex',gap:'4px',justifyContent:'center',marginBottom:'12px'}},
-                React.createElement('div',{style:{width:'38px',fontSize:'11px',color:'#fff',textAlign:'left',paddingRight:'4px'}},'Slots Left'),
-                [1,2,3,4,5,6,7,8,9].map(c=>{
-                  const total = totalSlots[c-1];
-                  const used = usedSlots[c-1];
-                  const remaining = total - used;
-                  return React.createElement('div',{
-                    key:c,
-                    style:{width:'28px',textAlign:'center',fontSize:'14px',fontWeight:700,
-                      color: total===0 ? 'rgba(255,255,255,0.2)' : remaining===0 ? 'rgba(255,100,100,0.9)' : '#fff',
-                      lineHeight:'22px'
-                    }
-                  }, total === 0 ? '—' : remaining);
-                })
-              )
-            ),
-
-            // Reset button
-            React.createElement('button',{onClick:resetSlots,style:{display:'block',margin:'0 auto 12px',background:'transparent',border:'1px solid rgba(255,255,255,0.35)',borderRadius:'8px',color:'rgba(255,255,255,0.85)',fontSize:'13px',padding:'5px 18px',cursor:'pointer',fontFamily:'Inter,sans-serif'}},'Reset used slots'),
-
-            // Spells prepared + Spell Attack + Spell Save DC
-            React.createElement('div',{style:{display:'flex',gap:'8px',marginBottom:'8px'}},
-              React.createElement('div',{style:{flex:1,background:'rgba(255,255,255,0.1)',borderRadius:'10px',border:'1px solid rgba(255,255,255,0.2)',padding:'8px',textAlign:'center'}},
-                React.createElement('div',{style:{color:'#fff',fontSize:'22px',fontWeight:700,lineHeight:'1.2',fontFamily:'Inter,sans-serif'}},String(autoPreparedCount)),
-                React.createElement('div',{style:{fontSize:'11px',color:'rgba(255,255,255,0.6)',marginTop:'2px'}},'Spells prepared')
-              ),
-
-              // Spell Attack - 0 disappears when empty
-              React.createElement('div',{style:{flex:1,background:'rgba(255,255,255,0.1)',borderRadius:'10px',border:'1px solid rgba(255,255,255,0.2)',padding:'8px',textAlign:'center'}},
-                React.createElement('input',{
-                  type:'number',
-                  value: spellAttack || '',
-                  placeholder: '0',
-                  onChange: e => {
-                    const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
-                    setSpellAttack(val);
-                    saveRef.current({spellAttack: val});
-                  },
-                  style:{background:'transparent',border:'none',color:'#fff',fontSize:'22px',fontWeight:700,textAlign:'center',width:'100%',outline:'none',padding:0,fontFamily:'Inter,sans-serif'}
-                }),
-                React.createElement('div',{style:{fontSize:'11px',color:'rgba(255,255,255,0.6)',marginTop:'2px'}},'Spell attack')
-              ),
-
-              // Spell Save DC - 0 disappears when empty
-              React.createElement('div',{style:{flex:1,background:'rgba(255,255,255,0.1)',borderRadius:'10px',border:'1px solid rgba(255,255,255,0.2)',padding:'8px',textAlign:'center'}},
-                React.createElement('input',{
-                  type:'number',
-                  value: spellSaveDC || '',
-                  placeholder: '0',
-                  onChange: e => {
-                    const val = e.target.value === '' ? 0 : parseInt(e.target.value) || 0;
-                    setSpellSaveDC(val);
-                    saveRef.current({spellSaveDC: val});
-                  },
-                  style:{background:'transparent',border:'none',color:'#fff',fontSize:'22px',fontWeight:700,textAlign:'center',width:'100%',outline:'none',padding:0,fontFamily:'Inter,sans-serif'}
-                }),
-                React.createElement('div',{style:{fontSize:'11px',color:'rgba(255,255,255,0.6)',marginTop:'2px'}},'Spell save DC')
-              )
+          React.createElement('button',{
+            onClick:()=>setEditingChar(true),
+            title:'Edit character',
+            style:{background:'transparent',border:'none',cursor:'pointer',padding:'2px',width:'32px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}
+          },
+            React.createElement('svg',{width:22,height:22,viewBox:'0 0 24 24',fill:'none',stroke:'rgba(255,255,255,0.85)',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'},
+              React.createElement('rect',{x:3,y:3,width:18,height:18,rx:3,ry:3,stroke:'rgba(255,255,255,0.85)',fill:'none'}),
+              React.createElement('path',{d:'M14.5 6.5l3 3L10 17H7v-3L14.5 6.5z'}),
+              React.createElement('path',{d:'M13 8l3 3'})
             )
           )
         ),
-
-        // ── STICKY TAB BAR ──
-        React.createElement('div',{style:{display:'flex',background:'#1a3a5c',borderTop:'1px solid rgba(255,255,255,0.1)',position:'sticky',top:0,zIndex:20,boxShadow:'0 2px 8px rgba(0,0,0,0.5)'}},
-          ['Known','Prepared','Class'].map(t=>React.createElement('button',{key:t,onClick:()=>setSubTab(t.toLowerCase()),style:{flex:1,padding:'12px',background:'transparent',border:'none',borderBottom:subTab===t.toLowerCase()?'2px solid #fff':'2px solid transparent',color:subTab===t.toLowerCase()?'#fff':'rgba(255,255,255,0.6)',fontSize:'14px',fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}},t))
-        ),
-
-        // ── SPELL LIST ──
-        React.createElement('div',{style:{minHeight:'100%'}},
-          subTab==='class'&&React.createElement('div',null,
-            classSpells.length===0
-              ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},'No spells available.')
-              :groupByLevel(classSpells).map(g=>React.createElement('div',{key:g.level},
-                  React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:false,showEye:true}),
-                  !collapsedLevels.has(g.level)&&g.spells.map(s=>React.createElement(SpellRowFull,{key:s.name,s,
-                    btnLabel:'Know',
-                    btnActive:knownSpells.includes(s.name),
-                    onToggle:()=>toggleKnown(s.name),
-                    onOpen:()=>setViewingSpell(s)}))
-                ))
+        // Collapsible slot section
+        React.createElement('div',{ref:headerContentRef,style:{padding:'0 16px 4px'}},
+          React.createElement('button',{onClick:()=>setSlotsCollapsed(c=>!c),style:{background:'transparent',border:'none',color:'#fff',fontSize:'15px',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',margin:'0 auto 8px'}},'Spell Slots',React.createElement('span',{style:{fontSize:'12px',color:'rgba(255,255,255,0.7)'}},slotsCollapsed?'▼':'▲')),
+          !slotsCollapsed&&React.createElement('div',null,
+            React.createElement('div',{style:{display:'flex',gap:'4px',justifyContent:'center',marginBottom:'2px'}},
+              React.createElement('div',{style:{width:'38px',fontSize:'11px',color:'rgba(255,255,255,0.5)',textAlign:'right',paddingRight:'4px'}},'Circle'),
+              [1,2,3,4,5,6,7,8,9].map(c=>React.createElement('div',{key:c,style:{width:'28px',textAlign:'center',fontSize:'12px',color:'rgba(255,255,255,0.7)',fontWeight:600}},c))
+            ),
+            React.createElement('div',{style:{display:'flex',gap:'4px',justifyContent:'center',marginBottom:'8px'}},
+              React.createElement('div',{style:{width:'38px',fontSize:'11px',color:'rgba(255,255,255,0.5)',textAlign:'right',paddingRight:'4px'}},'Slots'),
+              [1,2,3,4,5,6,7,8,9].map(c=>{
+                const total=totalSlots[c-1],used=usedSlots[c-1],avail=total-used;
+                return React.createElement('div',{key:c,style:{width:'28px',textAlign:'center',fontSize:'14px',fontWeight:700,color:total===0?'rgba(255,255,255,0.2)':avail===0?'rgba(255,100,100,0.9)':'#fff',lineHeight:'22px'}},total===0?'—':avail);
+              })
+            )
           ),
-          subTab==='known'&&React.createElement('div',null,
-            knownObjs.length===0
-              ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},'No spells known yet. Go to Class tab to add spells.')
-              :groupByLevel(knownObjs).map(g=>React.createElement('div',{key:g.level},
-                  React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:true}),
-                  g.spells.map(s=>React.createElement(SpellRowFull,{key:s.name,s,
-                    btnLabel:'Prepare',
-                    btnActive:preparedSpells.includes(s.name),
-                    onToggle:()=>togglePrepared(s.name),
-                    onOpen:()=>setViewingSpell(s)}))
-                ))
+        React.createElement('button',{onClick:resetSlots,style:{display:'block',margin:'0 auto 8px',background:'transparent',border:'1px solid rgba(255,255,255,0.35)',borderRadius:'8px',color:'rgba(255,255,255,0.85)',fontSize:'13px',padding:'5px 18px',cursor:'pointer',fontFamily:'Inter,sans-serif'}},'Reset used slots'),
+        React.createElement('div',{style:{display:'flex',gap:'8px',marginBottom:'8px'}},
+          React.createElement('div',{style:{flex:1,background:'rgba(255,255,255,0.1)',borderRadius:'10px',border:'1px solid rgba(255,255,255,0.2)',padding:'8px',textAlign:'center'}},
+            React.createElement('div',{style:{color:'#fff',fontSize:'22px',fontWeight:700,lineHeight:'1.2',fontFamily:'Inter,sans-serif'}},String(autoPreparedCount)),
+            React.createElement('div',{style:{fontSize:'11px',color:'rgba(255,255,255,0.6)',marginTop:'2px'}},'Spells prepared')
           ),
-          subTab==='prepared'&&React.createElement('div',null,
-            preparedObjs.length===0
-              ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},'No spells prepared yet. Go to Known tab to prepare spells.')
-              :groupByLevel(preparedObjs).map(g=>React.createElement('div',{key:g.level},
-                  React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:true}),
-                  g.spells.map(s=>React.createElement(SpellRowPrepared,{key:s.name,s,onOpen:()=>setViewingSpell(s)}))
-                ))
-          )
+          [['Spell attack',spellAttack,v=>{setSpellAttack(v);saveRef.current({spellAttack:v});}],
+           ['Spell save DC',spellSaveDC,v=>{setSpellSaveDC(v);saveRef.current({spellSaveDC:v});}]
+          ].map(([label,val,setter])=>React.createElement('div',{key:label,style:{flex:1,background:'rgba(255,255,255,0.1)',borderRadius:'10px',border:'1px solid rgba(255,255,255,0.2)',padding:'8px',textAlign:'center'}},
+            React.createElement('input',{type:'number',value:val,onChange:e=>setter(parseInt(e.target.value)||0),style:{background:'transparent',border:'none',color:'#fff',fontSize:'22px',fontWeight:700,textAlign:'center',width:'100%',outline:'none',padding:0,fontFamily:'Inter,sans-serif'}}),
+            React.createElement('div',{style:{fontSize:'11px',color:'rgba(255,255,255,0.6)',marginTop:'2px'}},label)
+          ))
         )
+        ),
       ),
 
-      // Modals
-      viewingSpell&&React.createElement(SpellDetailView,{spell:viewingSpell,onBack:()=>setViewingSpell(null),onAdd:(s)=>setAddingSpell(s)}),
-      addingSpell&&React.createElement(AddSpellPopup,{spell:addingSpell,onClose:()=>setAddingSpell(null),isMobile:false}),
-      editingChar&&React.createElement(EditCharacter,{
-        character,
-        onClose:()=>setEditingChar(false),
-        onSave:(updated)=>{
-          const merged={...updated,usedSlots,knownSpells,preparedSpells,spellsPreparedCount,spellAttack,spellSaveDC,roteSpells};
-          onUpdate(merged);
-          setEditingChar(false);
-        }
-      })
-    )
+      // ── STICKY TAB BAR — direct child of scroll container so sticky works ──
+      React.createElement('div',{style:{display:'flex',background:'#1a3a5c',borderTop:'1px solid rgba(255,255,255,0.1)',position:'sticky',top:0,zIndex:20,boxShadow:'0 2px 8px rgba(0,0,0,0.5)'}},
+        ['Known','Prepared','Class'].map(t=>React.createElement('button',{key:t,onClick:()=>setSubTab(t.toLowerCase()),style:{flex:1,padding:'12px',background:'transparent',border:'none',borderBottom:subTab===t.toLowerCase()?'2px solid #fff':'2px solid transparent',color:subTab===t.toLowerCase()?'#fff':'rgba(255,255,255,0.6)',fontSize:'14px',fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}},t))
+      ),
+
+      // ── SPELL LIST (flows below the sticky tab bar) ──
+      React.createElement('div',{style:{minHeight:'100%'}},
+        subTab==='class'&&React.createElement('div',null,
+          classSpells.length===0
+            ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},'No spells available.')
+            :groupByLevel(classSpells).map(g=>React.createElement('div',{key:g.level},
+                React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:false,showEye:true}),
+                !collapsedLevels.has(g.level)&&g.spells.map(s=>React.createElement(SpellRowFull,{key:s.name,s,
+                  btnLabel:'Know',
+                  btnActive:knownSpells.includes(s.name),
+                  onToggle:()=>toggleKnown(s.name),
+                  onOpen:()=>setViewingSpell(s)}))
+              ))
+        ),
+        subTab==='known'&&React.createElement('div',null,
+          knownObjs.length===0
+            ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},'No spells known yet. Go to Class tab to add spells.')
+            :groupByLevel(knownObjs).map(g=>React.createElement('div',{key:g.level},
+                React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:true}),
+                g.spells.map(s=>React.createElement(SpellRowFull,{key:s.name,s,
+                  btnLabel:'Prepare',
+                  btnActive:preparedSpells.includes(s.name),
+                  onToggle:()=>togglePrepared(s.name),
+                  onOpen:()=>setViewingSpell(s)}))
+              ))
+        ),
+        subTab==='prepared'&&React.createElement('div',null,
+          preparedObjs.length===0
+            ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},'No spells prepared yet. Go to Known tab to prepare spells.')
+            :groupByLevel(preparedObjs).map(g=>React.createElement('div',{key:g.level},
+                React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:true}),
+                g.spells.map(s=>React.createElement(SpellRowPrepared,{key:s.name,s,onOpen:()=>setViewingSpell(s)}))
+              ))
+        )
+      )
+    ),
+    viewingSpell&&React.createElement(SpellDetailView,{spell:viewingSpell,onBack:()=>setViewingSpell(null),onAdd:(s)=>setAddingSpell(s)}),
+    addingSpell&&React.createElement(AddSpellPopup,{spell:addingSpell,onClose:()=>setAddingSpell(null),isMobile:true}),
+    editingChar&&React.createElement(EditCharacter,{
+      character,
+      onClose:()=>setEditingChar(false),
+      onSave:(updated)=>{
+        const merged={...updated,usedSlots,knownSpells,preparedSpells,spellsPreparedCount,spellAttack,spellSaveDC,roteSpells};
+        onUpdate(merged);
+        setEditingChar(false);
+      }
+    })
   );
 }
 
 
-// The rest of your code remains unchanged
 function CharactersPage({isMobile}) {
   const [chars,setChars]=useState(loadChars);
   const [creating,setCreating]=useState(false);
@@ -1493,6 +1417,7 @@ function CharactersPage({isMobile}) {
     creating&&React.createElement(CreateCharacter,{onClose:()=>setCreating(false),onSave:handleSave})
     )
   );
+
 }
 
 
@@ -1557,8 +1482,10 @@ function AddSpellPopup({spell, onClose, isMobile}) {
   );
 
   if (isMobile) {
+    // Full screen on mobile
     return React.createElement('div', {style:{position:'fixed',inset:0,zIndex:800,background:'var(--bg)',display:'flex',flexDirection:'column'}}, content);
   }
+  // Centered popup on desktop
   return React.createElement('div', {style:{position:'fixed',inset:0,zIndex:800,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'center',justifyContent:'center'},onClick:e=>{if(e.target===e.currentTarget)onClose();}},
     React.createElement('div', {style:{background:'var(--bg2)',borderRadius:'16px',border:'1px solid var(--border2)',width:'420px',maxWidth:'90vw',maxHeight:'70vh',display:'flex',flexDirection:'column',overflow:'hidden'}}, content)
   );
