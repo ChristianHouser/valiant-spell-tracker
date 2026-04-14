@@ -195,7 +195,9 @@ body:not(.light) .spell-higher-label { color: #6a9fd4; }
 .d-detail { width: 360px; min-width: 360px; background: var(--bg2); border-left: 1px solid var(--border); overflow-y: auto; }
 .d-detail-inner { padding: 20px; }
 .d-detail-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text3); gap: 10px; }
-.d-filter-dropdown { position: fixed; top: 56px; left: 0; width: 360px; max-height: calc(100vh - 56px); overflow-y: auto; background: var(--bg2); border-right: 1px solid var(--border); box-shadow: 4px 0 20px rgba(0,0,0,0.18); z-index: 500; }
+.d-filter-dropdown { position: fixed; top: 56px; left: 0; width: 360px; height: calc(100vh - 56px); display: flex; flex-direction: column; overflow: hidden; background: var(--bg2); border-right: 1px solid var(--border); box-shadow: 4px 0 20px rgba(0,0,0,0.18); z-index: 500; }
+.d-filter-dropdown-scroll { flex: 1; overflow-y: auto; padding: 14px 12px; }
+.d-filter-clear-bar { flex-shrink: 0; padding: 8px 12px; border-bottom: 1px solid var(--border2); background: var(--bg2); }
 .d-filter-backdrop { position: fixed; inset: 0; top: 56px; z-index: 499; }
 
 /* Desktop tab bar styled as top nav tabs */
@@ -1902,9 +1904,11 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
           search&&React.createElement('button',{onClick:()=>setSearch(''),style:{position:'absolute',right:'10px',top:'50%',transform:'translateY(-50%)',background:'transparent',border:'none',color:'var(--text3)',fontSize:'18px',cursor:'pointer',lineHeight:1,padding:'0 2px'}},'×')
         )
       ),
-      React.createElement('div',{className:'d-sidebar-filters'},
-        React.createElement(FilterSections,{filters,setFilters}),
-        activeCount>0&&React.createElement('button',{className:'d-clear-btn',onClick:()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]}))},`Clear all filters (${activeCount})`)
+      activeCount>0&&React.createElement('div',{className:'d-filter-clear-bar'},
+        React.createElement('button',{className:'d-clear-btn',style:{margin:0},onClick:()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]}))},`Clear all filters (${activeCount})`)
+      ),
+      React.createElement('div',{className:'d-filter-dropdown-scroll'},
+        React.createElement(FilterSections,{filters,setFilters})
       )
     ),
     // Desktop about modal
