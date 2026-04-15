@@ -39,7 +39,7 @@ body {
 .search-input { width: 100%; background: var(--bg3); border: 1px solid var(--border2); border-radius: 20px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 15px; padding: 7px 12px 7px 38px; outline: none; transition: border-color 0.15s; -webkit-appearance: none; }
 .search-input:focus { border-color: var(--accent2); }
 .search-input::placeholder { color: var(--text3); }
-.search-wrap { position: relative; }
+.search-wrap { position: relative; flex: 1; }
 .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text); font-size: 20px; pointer-events: none; }
 .filter-label { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--text); text-transform: uppercase; margin-bottom: 7px; display: block; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -162,7 +162,7 @@ body:not(.light) .spell-higher-label { color: #6a9fd4; }
 .mobile-layout { display: flex; flex-direction: column; background: var(--bg); min-height: 100dvh; }
 .m-header { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: var(--bg2); border-bottom: 1px solid var(--border2); display: flex; align-items: center; padding: 0 16px; gap: 10px; z-index: 200; }
 .m-header .logo { flex: 1; }
-.m-searchbar { position: fixed; top: 56px; left: 0; right: 0; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 16px; z-index: 190; }
+.m-searchbar { position: fixed; top: 56px; left: 0; right: 0; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 16px; z-index: 190; display: flex; align-items: center; gap: 8px; }
 .m-scroll { margin-top: 113px; overflow-y: auto; height: calc(100dvh - 113px - var(--tab-h)); -webkit-overflow-scrolling: touch; background: var(--bg); }
 .m-scroll .level-header { position: sticky; top: 0; z-index: 5; }
 .m-filter-overlay { display: none; position: fixed; top: 113px; left: 0; right: 0; bottom: var(--tab-h); z-index: 180; background: rgba(0,0,0,0.5); flex-direction: column; }
@@ -219,6 +219,17 @@ body:not(.light) .spell-higher-label { color: #6a9fd4; }
 .chars-empty-icon { font-size: 48px; opacity: 0.2; }
 .chars-empty-text { font-size: 16px; font-weight: 500; color: var(--text2); }
 .chars-empty-sub { font-size: 14px; color: var(--text3); }
+
+/* ── HOMEBREW PAGE ── */
+.homebrew-page { position: fixed; inset: 0; z-index: 205; background: var(--bg); display: flex; flex-direction: column; overflow: hidden; }
+.homebrew-header { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border2); gap: 10px; flex-shrink: 0; }
+.homebrew-title { flex: 1; text-align: center; font-family: 'Cinzel', serif; font-size: 20px; font-weight: 700; color: var(--accent); }
+.homebrew-action-row { display: flex; justify-content: flex-end; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.homebrew-body { flex: 1; overflow-y: auto; }
+.homebrew-icon-btn { background: transparent; border: none; padding: 6px; cursor: pointer; color: var(--text2); display: flex; align-items: center; justify-content: center; border-radius: 8px; flex-shrink: 0; transition: color 0.15s; -webkit-tap-highlight-color: transparent; }
+.homebrew-icon-btn:hover { color: var(--accent); }
+.homebrew-back-btn { background: transparent; border: none; color: var(--text2); font-size: 22px; cursor: pointer; padding: 4px 8px; line-height: 1; -webkit-tap-highlight-color: transparent; flex-shrink: 0; }
+.homebrew-back-btn:hover { color: var(--text); }
 
 /* Character card */
 .char-card { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: background 0.1s; display: flex; align-items: center; gap: 14px; -webkit-tap-highlight-color: transparent; }
@@ -346,6 +357,12 @@ function loadChars() {
 }
 function saveChars(chars) {
   try { localStorage.setItem('tov_characters', JSON.stringify(chars)); } catch {}
+}
+function loadHomebrewSpells() {
+  try { return JSON.parse(localStorage.getItem('tov_homebrew')||'[]'); } catch { return []; }
+}
+function saveHomebrewSpells(spells) {
+  try { localStorage.setItem('tov_homebrew', JSON.stringify(spells)); } catch {}
 }
 
 function formatDesc(desc) {
@@ -1650,7 +1667,7 @@ function SettingsPage({dark,setDark,onShowAbout,onShowTutorial}) {
 // ══════════════════════════════════════════════════════════════
 // MOBILE APP
 // ══════════════════════════════════════════════════════════════
-function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint,tab,setTab,selectedCharId,setSelectedCharId}) {
+function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint,tab,setTab,selectedCharId,setSelectedCharId,showHomebrew,setShowHomebrew}) {
   const [selected,setSelected]=useState(null);
   const [filterOpen,setFilterOpen]=useState(false);
   const [addSpellTarget,setAddSpellTarget]=useState(null);
@@ -1684,6 +1701,14 @@ function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,sh
       )
     ),
     tab==='spells'&&React.createElement('div',{className:'m-searchbar'},
+      React.createElement('button',{className:'homebrew-icon-btn','aria-label':'Homebrew Spells',onClick:()=>setShowHomebrew(true)},
+        React.createElement('svg',{width:22,height:22,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},
+          React.createElement('path',{d:'M4 19.5A2.5 2.5 0 0 1 6.5 17H20'}),
+          React.createElement('path',{d:'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'}),
+          React.createElement('line',{x1:'12',y1:'7',x2:'12',y2:'13'}),
+          React.createElement('line',{x1:'9',y1:'10',x2:'15',y2:'10'})
+        )
+      ),
       React.createElement('div',{className:'search-wrap'},
         React.createElement('span',{className:'search-icon'},'⌕'),
         React.createElement('input',{className:'search-input',placeholder:'Search by name...',value:search,onChange:e=>setSearch(e.target.value)}),
@@ -1825,7 +1850,7 @@ function ResizeHandle({getWidth, setWidth, min, max, invert, onReset}) {
 // ══════════════════════════════════════════════════════════════
 // DESKTOP APP
 // ══════════════════════════════════════════════════════════════
-function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint,tab,setTab,selectedCharId,setSelectedCharId}) {
+function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint,tab,setTab,selectedCharId,setSelectedCharId,showHomebrew,setShowHomebrew}) {
   const [selected,setSelected]=useState(null);
   const [addSpellTarget,setAddSpellTarget]=useState(null);
   const [showSettings,setShowSettings]=useState(false);
@@ -1855,7 +1880,15 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
           React.createElement('polygon',{points:'22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3'})
         )
       ),
-      tab==='spells'&&React.createElement('button',{className:'icon-btn',title:'Print Spell Cards',onClick:()=>setShowPrint(true),style:{marginLeft: tab==='spells'?'8px':'auto',color:'var(--text2)'}},
+      tab==='spells'&&React.createElement('button',{className:'icon-btn',title:'Homebrew Spells',onClick:()=>setShowHomebrew(true),style:{marginLeft:'8px',color:'var(--text2)'}},
+        React.createElement('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'},
+          React.createElement('path',{d:'M4 19.5A2.5 2.5 0 0 1 6.5 17H20'}),
+          React.createElement('path',{d:'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'}),
+          React.createElement('line',{x1:'12',y1:'7',x2:'12',y2:'13'}),
+          React.createElement('line',{x1:'9',y1:'10',x2:'15',y2:'10'})
+        )
+      ),
+      tab==='spells'&&React.createElement('button',{className:'icon-btn',title:'Print Spell Cards',onClick:()=>setShowPrint(true),style:{marginLeft:'8px',color:'var(--text2)'}},
         React.createElement('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'},
           React.createElement('polyline',{points:'6 9 6 2 18 2 18 9'}),
           React.createElement('path',{d:'M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2'}),
@@ -2919,6 +2952,55 @@ function TutorialOverlay({onClose}) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// HOMEBREW SPELLS PAGE
+// ══════════════════════════════════════════════════════════════
+function HomebrewPage({onClose}) {
+  const [spells,setSpells]=useState(loadHomebrewSpells);
+  useEffect(()=>{ return pushBack(onClose); },[]);
+
+  // SVG icons
+  const scrollPlusSvg=React.createElement('svg',{width:48,height:48,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.5,strokeLinecap:'round',strokeLinejoin:'round'},
+    React.createElement('path',{d:'M4 19.5A2.5 2.5 0 0 1 6.5 17H20'}),
+    React.createElement('path',{d:'M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'}),
+    React.createElement('line',{x1:'12',y1:'7',x2:'12',y2:'13'}),
+    React.createElement('line',{x1:'9',y1:'10',x2:'15',y2:'10'})
+  );
+  const cloudSvg=React.createElement('svg',{width:24,height:24,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2,strokeLinecap:'round',strokeLinejoin:'round'},
+    React.createElement('polyline',{points:'16 16 12 12 8 16'}),
+    React.createElement('line',{x1:'12',y1:'12',x2:'12',y2:'21'}),
+    React.createElement('path',{d:'M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3'})
+  );
+
+  return React.createElement('div',{className:'homebrew-page'},
+    // Header row
+    React.createElement('div',{className:'homebrew-header'},
+      React.createElement('button',{className:'homebrew-back-btn','aria-label':'Back',onClick:onClose},'←'),
+      React.createElement('div',{className:'homebrew-title'},'Homebrew Spells'),
+      React.createElement('div',{style:{color:'var(--text3)',display:'flex',alignItems:'center',flexShrink:0}},cloudSvg)
+    ),
+    // Action row — only when spells exist
+    spells.length>0&&React.createElement('div',{className:'homebrew-action-row'},
+      React.createElement('button',{className:'add-char-btn',onClick:()=>{/* TODO: open new spell form */}},'+ New Custom Spell')
+    ),
+    // Body
+    React.createElement('div',{className:'homebrew-body'},
+      spells.length===0
+        ? React.createElement('div',{className:'chars-empty'},
+            React.createElement('div',{className:'chars-empty-icon',style:{fontSize:'64px',opacity:0.18}},scrollPlusSvg),
+            React.createElement('div',{className:'chars-empty-text'},'No homebrew spells yet'),
+            React.createElement('div',{className:'chars-empty-sub'},"Tap '+ New Custom Spell' to create one"),
+            React.createElement('button',{className:'add-char-btn',style:{marginTop:'8px'},onClick:()=>{/* TODO: open new spell form */}},'+ New Custom Spell')
+          )
+        : React.createElement('div',{style:{padding:'16px'}},
+            spells.map((s,i)=>React.createElement('div',{key:i,style:{padding:'12px 14px',background:'var(--bg2)',border:'1px solid var(--border2)',borderRadius:'var(--r-lg)',marginBottom:'10px'}},
+              React.createElement('div',{style:{fontWeight:600,color:'var(--text)'}},s.name||'Unnamed Spell')
+            ))
+          )
+    )
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
 // ROOT
 // ══════════════════════════════════════════════════════════════
 function App() {
@@ -2930,15 +3012,17 @@ function App() {
   const [filters,setFilters]=useState({selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]});
   const [tab,setTab]=useState('spells');
   const [selectedCharId,setSelectedCharId]=useState(null);
+  const [showHomebrew,setShowHomebrew]=useState(false);
   useEffect(()=>{ document.body.classList.toggle('light',!dark); },[dark]);
   const filtered=useFiltered(search,filters);
-  const shared={dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint,tab,setTab,selectedCharId,setSelectedCharId};
+  const shared={dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint,tab,setTab,selectedCharId,setSelectedCharId,showHomebrew,setShowHomebrew};
   return React.createElement('div',null,
     showSplash&&React.createElement(SplashScreen,{onDismiss:()=>setShowSplash(false)}),
     React.createElement(DesktopApp,shared),
     React.createElement(MobileApp,shared),
     showTutorial&&React.createElement(TutorialOverlay,{onClose:()=>setShowTutorial(false)}),
-    showPrint&&React.createElement(PrintCardsModal,{onClose:()=>setShowPrint(false),filtered,allSpells:SPELLS_DATA})
+    showPrint&&React.createElement(PrintCardsModal,{onClose:()=>setShowPrint(false),filtered,allSpells:SPELLS_DATA}),
+    showHomebrew&&React.createElement(HomebrewPage,{onClose:()=>setShowHomebrew(false)})
   );
 }
 
