@@ -2193,136 +2193,148 @@ function drawOrnateFrame(doc, x, y, w, h) {
 }
 
 // ── Card FRONT (spell info, Image 2 style) ─────────────────────
+// ── Hash string to integer (deterministic torn-edge seed) ───────
+function hashStrNum(s){let h=0;for(let i=0;i<s.length;i++)h=(Math.imul(31,h)+s.charCodeAt(i))|0;return Math.abs(h);}
+
+// ── Parchment scroll divider (dots + lines) ──────────────────────
+function drawScrollDivider(doc,x1,x2,y){
+  const cx=(x1+x2)/2;
+  doc.setDrawColor(90,65,35); doc.setFillColor(90,65,35); doc.setLineWidth(0.0035);
+  doc.line(x1,y,cx-0.072,y); doc.line(cx+0.072,y,x2,y);
+  doc.circle(cx,y,0.011,'FD'); doc.circle(cx-0.038,y,0.005,'FD'); doc.circle(cx+0.038,y,0.005,'FD');
+}
+
 function drawCardFront(doc, spell, x, y, w, h, opts) {
   const pad = 0.1;
-  const clsColor = getClassColor(spell);
+  const seed = hashStrNum(spell.name||'x');
 
-  // Shadow
-  doc.setFillColor(210,210,210);
-  doc.rect(x+0.012, y+0.012, w, h, 'F');
+  // Deterministic torn-edge perturbation
+  function tr(i){const v=Math.sin(seed*9301+i*49297)*233280;return(v-Math.floor(v))*2-1;}
 
-  // White card background
-  doc.setFillColor(252,250,248);
-  doc.roundedRect(x, y, w, h, 0.06, 0.06, 'F');
+  // Build torn-edge polygon (absolute coords)
+  const n=28, amp=0.018, m=0.004;
+  const pts=[];
+  for(let i=0;i<=n;i++) pts.push([x+m+(i/n)*(w-2*m), y+m+tr(i)*amp]);
+  for(let i=1;i<=n;i++) pts.push([x+w-m+tr(n+i)*amp, y+m+(i/n)*(h-2*m)]);
+  for(let i=1;i<=n;i++) pts.push([x+w-m-(i/n)*(w-2*m), y+h-m+tr(2*n+i)*amp]);
+  for(let i=1;i<n;i++) pts.push([x+m+tr(3*n+i)*amp, y+h-m-(i/n)*(h-2*m)]);
+  const rel=pts.slice(1).map((p,i)=>[p[0]-pts[i][0],p[1]-pts[i][1]]);
 
-  // Colored border
-  doc.setDrawColor(...clsColor);
-  doc.setLineWidth(0.018);
-  doc.roundedRect(x, y, w, h, 0.06, 0.06, 'D');
+  // 1. Dark backing
+  doc.setFillColor(18,14,10);
+  doc.roundedRect(x-0.018,y-0.018,w+0.036,h+0.036,0.07,0.07,'F');
 
-  // ── Spell Name ──
-  const titleSize = opts.fontSize==='small'?8:opts.fontSize==='large'?11:opts.fontSize==='medium'?9.5:(w<2.6?8.5:w<3.1?9.5:11);
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(titleSize);
-  doc.setTextColor(20,20,30);
-  const nameLines = doc.splitTextToSize(spell.name, w - pad*2);
-  doc.text(nameLines[0], x+w/2, y+0.19, {align:'center'});
+  // 2. Parchment torn paper
+  doc.setFillColor(241,231,205); doc.setDrawColor(18,14,10); doc.setLineWidth(0.005);
+  doc.lines(rel,pts[0][0],pts[0][1],[1,1],'FD',true);
 
-  // ── School · Level subtitle ──
-  const lvlLabel = spell.level===0?'Cantrip':'Lvl '+spell.level;
-  const subtitle = (spell.school||'') + (spell.school&&lvlLabel?' \u00b7 ':' ') + lvlLabel;
-  doc.setFont('helvetica','italic');
-  doc.setFontSize(5.5);
-  doc.setTextColor(...clsColor);
-  const arrowY = y+0.30;
-  const subW = doc.getTextWidth(subtitle);
-  const subX = x+w/2;
-  doc.text('\u2014  '+subtitle+'  \u2014', subX, arrowY, {align:'center'});
+  // 3. Wax seal (top right)
+  const sealR=Math.min(w*0.085,0.13);
+  const sealCX=x+w-pad*0.65-sealR, sealCY=y+pad*0.65+sealR;
+  doc.setFillColor(115,28,28); doc.setDrawColor(80,15,15); doc.setLineWidth(0.004);
+  doc.circle(sealCX,sealCY,sealR,'FD');
+  doc.setDrawColor(150,55,55); doc.setLineWidth(0.003);
+  doc.circle(sealCX,sealCY,sealR*0.78,'D');
+  doc.setFont('helvetica','bold'); doc.setFontSize(Math.round(sealR*72*0.62));
+  doc.setTextColor(255,245,230);
+  doc.text(spell.level===0?'C':String(spell.level),sealCX,sealCY+sealR*0.22,{align:'center'});
 
-  // ── Separator ──
-  doc.setDrawColor(...clsColor);
-  doc.setLineWidth(0.005);
-  doc.line(x+pad, y+0.37, x+w-pad, y+0.37);
+  // 4. Spell name
+  const titleSize=opts.fontSize==='small'?8:opts.fontSize==='large'?11:opts.fontSize==='medium'?9.5:(w<2.6?8.5:w<3.1?9.5:11);
+  doc.setFont('times','bold'); doc.setFontSize(titleSize); doc.setTextColor(22,15,8);
+  const nameLines=doc.splitTextToSize(spell.name,w-pad*2-(sealR*2+0.08));
+  doc.text(nameLines[0]||spell.name,x+pad,y+0.195);
 
-  // ── 2×2 Info Grid ──
-  const gridTop = y+0.42;
-  const boxW = (w - pad*2 - 0.04)/2;
-  const boxH = 0.42;
-  const gapX = 0.04;
-  const boxes = [
-    {label:'Duration',    val:spell.duration,    icon:'\u231b', col:0, row:0},
-    {label:'Range',       val:spell.range,       icon:'\u2295', col:1, row:0},
-    {label:'Casting Time',val:spell.castingTime, icon:'\u23f1', col:0, row:1},
-    {label:'Components',  val:spell.components,  icon:'\u2726', col:1, row:1},
+  // 5. School · level subtitle
+  const CIRC_WORDS=['Cantrip','1st','2nd','3rd','4th','5th','6th','7th','8th','9th'];
+  const circStr=spell.level===0?'cantrip':(CIRC_WORDS[spell.level]||'')+' level';
+  const subtitle=circStr+(spell.school?' '+(spell.school||'').toLowerCase():'');
+  doc.setFont('times','italic'); doc.setFontSize(5.5); doc.setTextColor(90,65,35);
+  doc.text(subtitle,x+w/2,y+0.285,{align:'center'});
+
+  // 6. Top scroll divider
+  const div1Y=y+0.335;
+  drawScrollDivider(doc,x+pad,x+w-pad,div1Y);
+
+  // 7. 2×2 Stats grid (open — no boxes, just lines)
+  const gridTop=y+0.375;
+  const midX=x+w/2;
+  const rowH=w<2.6?0.185:0.20;
+  doc.setDrawColor(110,80,40); doc.setLineWidth(0.004);
+  doc.line(midX,gridTop+0.01,midX,gridTop+rowH*2-0.01);
+  doc.line(x+pad+0.03,gridTop+rowH,x+w-pad-0.03,gridTop+rowH);
+
+  const stats=[
+    {label:'Casting time',val:spell.castingTime,col:0,row:0},
+    {label:'Range',       val:spell.range,       col:1,row:0},
+    {label:'Components',  val:(spell.components||'').replace(/\([^)]+\)/,'').trim(),col:0,row:1},
+    {label:'Duration',    val:spell.duration,    col:1,row:1},
   ];
-  boxes.forEach(({label,val,icon,col,row})=>{
-    const bx = x+pad + col*(boxW+gapX);
-    const by = gridTop + row*(boxH+0.03);
-    doc.setDrawColor(200,200,200); doc.setLineWidth(0.005);
-    doc.roundedRect(bx, by, boxW, boxH, 0.03, 0.03, 'D');
-    // Label
-    doc.setFont('helvetica','bold'); doc.setFontSize(5); doc.setTextColor(100,100,100);
-    doc.text(label, bx+boxW/2, by+0.11, {align:'center'});
-    // Value
-    doc.setFont('helvetica','normal'); doc.setFontSize(5.5); doc.setTextColor(20,20,30);
-    const valStr = doc.splitTextToSize(val||'—', boxW-0.06)[0];
-    doc.text(valStr, bx+boxW/2, by+0.28, {align:'center'});
-    // Separator line in box
-    doc.setDrawColor(220,220,220); doc.setLineWidth(0.003);
-    doc.line(bx+0.06, by+0.16, bx+boxW-0.06, by+0.16);
+  stats.forEach(({label,val,col,row})=>{
+    const cx2=col===0?(x+pad+(midX-x-pad)/2):(midX+(x+w-pad-midX)/2);
+    const ty=gridTop+row*rowH;
+    doc.setFont('times','italic'); doc.setFontSize(4.8); doc.setTextColor(105,75,40);
+    doc.text(label,cx2,ty+0.09,{align:'center'});
+    const valStr=doc.splitTextToSize(val||'\u2014',midX-x-pad-0.05)[0];
+    doc.setFont('times','bold'); doc.setFontSize(w<2.6?5.8:6.5); doc.setTextColor(22,15,8);
+    doc.text(valStr,cx2,ty+rowH*0.76,{align:'center'});
   });
 
-  // ── Separator after grid ──
-  const gridBot = gridTop + 2*(boxH+0.03) - 0.01;
-  doc.setDrawColor(...clsColor); doc.setLineWidth(0.005);
-  doc.line(x+pad, gridBot+0.04, x+w-pad, gridBot+0.04);
+  // 8. Bottom scroll divider
+  const div2Y=gridTop+rowH*2+0.02;
+  drawScrollDivider(doc,x+pad,x+w-pad,div2Y);
 
-  // ── Description ──
-  const descSize = opts.fontSize==='small'?6:opts.fontSize==='large'?8:opts.fontSize==='medium'?7:(w<2.6?6.5:w<3.1?7:8);
-  doc.setFont('helvetica','normal'); doc.setFontSize(descSize);
-  doc.setTextColor(30,30,30);
-  const dLh = descSize/72*1.3;
+  // 9. Description
+  const descSize=opts.fontSize==='small'?6:opts.fontSize==='large'?8:opts.fontSize==='medium'?7:(w<2.6?6.2:w<3.1?7:8);
+  doc.setFont('times','normal'); doc.setFontSize(descSize); doc.setTextColor(30,22,12);
+  const dLh=descSize/72*1.35;
 
   // Material component extraction
-  const compStr = spell.components||'';
-  const hasMaterial = compStr.includes('M');
-  const materialMatch = compStr.match(/\(([^)]+)\)/);
-  const materialText = materialMatch ? materialMatch[1] : null;
+  const compStr=spell.components||'';
+  const hasMaterial=compStr.includes('M');
+  const materialMatch=compStr.match(/\(([^)]+)\)/);
+  const materialText=materialMatch?materialMatch[1]:null;
 
-  const footerH = hasMaterial&&materialText ? 0.22 : 0.08;
-  const descTop = gridBot+0.1;
-  const descBot = y+h-footerH-0.04;
-  const maxLines = Math.max(1, Math.floor((descBot-descTop)/dLh));
+  const footerH=hasMaterial&&materialText?0.22:0.05;
+  const descTop=div2Y+0.055;
+  const descBot=y+h-footerH-0.05;
+  const maxLines=Math.max(1,Math.floor((descBot-descTop)/dLh));
 
-  // Faint watermark (class symbol) in description area
-  try {
-    const wmCX = x+w/2, wmCY = (descTop+descBot)/2;
-    const wmR = Math.min((descBot-descTop)*0.38, w*0.3);
-    if (doc.setGState) {
-      doc.setGState(new doc.GState({opacity:0.05}));
-      doc.setDrawColor(...clsColor); doc.setFillColor(...clsColor);
+  // Faint class emblem watermark
+  try{
+    const wmCX=x+w/2,wmCY=(descTop+descBot)/2;
+    const wmR=Math.min((descBot-descTop)*0.38,w*0.3);
+    if(doc.setGState){
+      doc.setGState(new doc.GState({opacity:0.04}));
+      doc.setDrawColor(90,65,35); doc.setFillColor(90,65,35);
+      _backFillColor=[241,231,205];
       doc.setLineWidth(0.01);
-      _backFillColor = [252,250,248];
-      drawClassEmblem(doc, (spell.classes||[''])[0], wmCX, wmCY, wmR);
+      drawClassEmblem(doc,(spell.classes||[''])[0],wmCX,wmCY,wmR);
       doc.setGState(new doc.GState({opacity:1}));
     }
-  } catch(e){}
+  }catch(e){}
 
-  let rawDesc = spell.description||'';
-  if (opts.layout==='compact') rawDesc = rawDesc.split('\n')[0];
-  const descLines = doc.splitTextToSize(rawDesc, w-pad*2);
-  const hasMore = descLines.length > maxLines;
-  const showLines = hasMore ? descLines.slice(0,maxLines-1) : descLines.slice(0,maxLines);
-  if (hasMore) showLines.push('\u2026');
+  let rawDesc=spell.description||'';
+  if(opts.layout==='compact') rawDesc=rawDesc.split('\n')[0];
+  const descLines=doc.splitTextToSize(rawDesc,w-pad*2);
+  const hasMore=descLines.length>maxLines;
+  const showLines=hasMore?descLines.slice(0,maxLines-1):descLines.slice(0,maxLines);
+  if(hasMore) showLines.push('\u2026');
 
-  doc.setFont('helvetica','normal'); doc.setFontSize(descSize); doc.setTextColor(30,30,30);
-  showLines.forEach((line,i)=>{
-    doc.text(line, x+pad, descTop + i*dLh + descSize/72*0.85);
-  });
+  doc.setFont('times','normal'); doc.setFontSize(descSize); doc.setTextColor(30,22,12);
+  showLines.forEach((line,i)=>{ doc.text(line,x+pad,descTop+i*dLh+descSize/72*0.85); });
 
-  // Notes lines
-  if (opts.layout==='notes') {
-    const notesTop = descTop + showLines.length*dLh + 0.06;
-    doc.setDrawColor(210,210,210); doc.setLineWidth(0.003);
-    for (let ny=notesTop; ny+dLh*1.2<descBot; ny+=dLh*1.5) doc.line(x+pad,ny,x+w-pad,ny);
+  if(opts.layout==='notes'){
+    const notesTop=descTop+showLines.length*dLh+0.06;
+    doc.setDrawColor(200,185,160); doc.setLineWidth(0.003);
+    for(let ny=notesTop;ny+dLh*1.2<descBot;ny+=dLh*1.5) doc.line(x+pad,ny,x+w-pad,ny);
   }
 
-  // ── Materials footer ──
-  if (hasMaterial && materialText) {
-    doc.setDrawColor(220,220,220); doc.setLineWidth(0.004);
-    doc.line(x+pad, y+h-footerH+0.01, x+w-pad, y+h-footerH+0.01);
-    doc.setFont('helvetica','italic'); doc.setFontSize(5); doc.setTextColor(100,100,100);
-    doc.text('\u2697 '+materialText, x+pad+0.02, y+h-0.06);
+  if(hasMaterial&&materialText){
+    doc.setDrawColor(190,175,150); doc.setLineWidth(0.004);
+    doc.line(x+pad,y+h-footerH+0.01,x+w-pad,y+h-footerH+0.01);
+    doc.setFont('times','italic'); doc.setFontSize(5); doc.setTextColor(100,75,45);
+    doc.text('\u2697 '+materialText,x+pad+0.02,y+h-0.06);
   }
 }
 
@@ -2400,42 +2412,108 @@ function generatePDF(spells, opts) {
 }
 
 // ── Live preview card (HTML/React) ─────────────────────────────
-function CardPreview({ spell, opts }) {
-  if (!spell) return React.createElement('div',{style:{color:'var(--text3)',fontSize:'13px',textAlign:'center',padding:'20px'}},'No spell selected');
+// Scroll divider element for card preview
+function scrollDividerEl(){
+  return React.createElement('div',{style:{display:'flex',alignItems:'center',gap:'4px',margin:'2px 0',flexShrink:0}},
+    React.createElement('div',{style:{flex:1,height:'0.5px',background:'#9a7040'}}),
+    React.createElement('div',{style:{width:'5px',height:'5px',borderRadius:'50%',background:'#9a7040',flexShrink:0}}),
+    React.createElement('div',{style:{flex:1,height:'0.5px',background:'#9a7040'}})
+  );
+}
+
+function CardPreview({spell,opts}){
+  if(!spell) return React.createElement('div',{style:{color:'var(--text3)',fontSize:'13px',textAlign:'center',padding:'20px'}},'No spell selected');
   const PX=90;
   const cw=opts.w*PX, ch=opts.h*PX;
-  const clsHex = getClassColorHex(spell);
-  const titleFs = Math.round((opts.fontSize==='small'?8:opts.fontSize==='large'?11:opts.w<2.6?8.5:9.5)*1.2);
-  const metaFs  = Math.round(5.5*1.25);
-  const descFs  = Math.round((opts.w<2.6?6.5:7)*1.25);
-  const lvlLabel = spell.level===0?'Cantrip':'Lvl '+spell.level;
-  const subtitle = (spell.school||'')+' \u00b7 '+lvlLabel;
-  const compStr  = spell.components||'';
-  const hasMat   = compStr.includes('M');
-  const matMatch = compStr.match(/\(([^)]+)\)/);
-  const matText  = matMatch?matMatch[1]:null;
-  const desc0 = opts.layout==='full'?(spell.description||''):(spell.description||'').split('\n')[0];
-  const infoBoxStyle = (label,val)=>React.createElement('div',{style:{border:'1px solid #ddd',borderRadius:'4px',padding:'3px 5px',flex:1,minWidth:0,textAlign:'center'}},
-    React.createElement('div',{style:{fontSize:'7px',fontWeight:700,color:'#888',fontFamily:'Arial,sans-serif',borderBottom:'1px solid #eee',marginBottom:'2px',paddingBottom:'1px'}},label),
-    React.createElement('div',{style:{fontSize:metaFs+'px',color:'#222',fontFamily:'Arial,sans-serif',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},val||'\u2014')
-  );
-  return React.createElement('div',{style:{width:cw+'px',height:ch+'px',background:'#fcfaf8',border:'3px solid '+clsHex,borderRadius:'6px',overflow:'hidden',position:'relative',boxShadow:'2px 2px 8px rgba(0,0,0,0.2)',flexShrink:0,display:'flex',flexDirection:'column',padding:'8px 8px 4px'}},
-    React.createElement('div',{style:{fontSize:titleFs+'px',fontWeight:700,textAlign:'center',color:'#14141e',fontFamily:'Arial,sans-serif',lineHeight:1.2,marginBottom:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},spell.name),
-    React.createElement('div',{style:{fontSize:'8px',textAlign:'center',color:clsHex,fontStyle:'italic',fontFamily:'Arial,sans-serif',marginBottom:'3px'}},'\u2014 '+subtitle+' \u2014'),
-    React.createElement('hr',{style:{border:'none',borderTop:'1.5px solid '+clsHex,margin:'0 0 4px'}}),
-    React.createElement('div',{style:{display:'flex',gap:'3px',marginBottom:'3px'}},
-      infoBoxStyle('Duration', spell.duration),
-      infoBoxStyle('Range', spell.range)
+  const seed=hashStrNum(spell.name||'x');
+
+  // Torn-edge polygon (pixels)
+  function tr(i){const v=Math.sin(seed*9301+i*49297)*233280;return(v-Math.floor(v))*2-1;}
+  const n=28,amp=cw*0.018,m=2;
+  const pts=[];
+  for(let i=0;i<=n;i++) pts.push([m+(i/n)*(cw-2*m),m+tr(i)*amp]);
+  for(let i=1;i<=n;i++) pts.push([cw-m+tr(n+i)*amp,m+(i/n)*(ch-2*m)]);
+  for(let i=1;i<=n;i++) pts.push([cw-m-(i/n)*(cw-2*m),ch-m+tr(2*n+i)*amp]);
+  for(let i=1;i<n;i++) pts.push([m+tr(3*n+i)*amp,ch-m-(i/n)*(ch-2*m)]);
+  const poly=pts.map(p=>p.map(v=>v.toFixed(1)).join(',')).join(' ');
+  const clipId='tc'+(seed%99999);
+
+  const titleFs=Math.round((opts.fontSize==='small'?8:opts.fontSize==='large'?11:opts.w<2.6?8.5:9.5)*1.2);
+  const descFs=Math.round((opts.w<2.6?6.2:7)*1.25);
+  const sealR=Math.round(cw*0.085);
+  const compStr=spell.components||'';
+  const hasMat=compStr.includes('M');
+  const matMatch=compStr.match(/\(([^)]+)\)/);
+  const matText=matMatch?matMatch[1]:null;
+  const CIRC=['Cantrip','1st','2nd','3rd','4th','5th','6th','7th','8th','9th'];
+  const circStr=spell.level===0?'cantrip':(CIRC[spell.level]||'')+' level';
+  const subtitle=circStr+(spell.school?' '+(spell.school||'').toLowerCase():'');
+  const desc0=opts.layout==='compact'?(spell.description||'').split('\n')[0]:(spell.description||'');
+
+  return React.createElement('div',{style:{position:'relative',width:cw+'px',height:ch+'px',flexShrink:0}},
+    // SVG: dark backing + torn parchment fill
+    React.createElement('svg',{
+      style:{position:'absolute',inset:0,overflow:'visible',zIndex:0,pointerEvents:'none'},
+      width:cw,height:ch
+    },
+      React.createElement('defs',null,
+        React.createElement('clipPath',{id:clipId},
+          React.createElement('polygon',{points:poly})
+        )
+      ),
+      React.createElement('rect',{x:-5,y:-5,width:cw+10,height:ch+10,rx:10,fill:'#120e0a'}),
+      React.createElement('polygon',{points:poly,fill:'#f1e7cd'})
     ),
-    React.createElement('div',{style:{display:'flex',gap:'3px',marginBottom:'4px'}},
-      infoBoxStyle('Casting Time', spell.castingTime),
-      infoBoxStyle('Components', (spell.components||'').replace(/\([^)]+\)/,'').trim())
-    ),
-    React.createElement('hr',{style:{border:'none',borderTop:'1px solid '+clsHex,margin:'0 0 4px'}}),
-    React.createElement('div',{style:{flex:1,fontSize:descFs+'px',color:'#1e1e1e',fontFamily:'Arial,sans-serif',lineHeight:'1.3',overflow:'hidden',position:'relative'}},
-      desc0
-    ),
-    hasMat&&matText&&React.createElement('div',{style:{borderTop:'1px solid #ddd',paddingTop:'2px',fontSize:'7px',color:'#888',fontFamily:'Arial,sans-serif',fontStyle:'italic',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:'2px'}},'\u2697 '+matText)
+    // Content layer (clipped to torn shape)
+    React.createElement('div',{style:{
+      position:'absolute',inset:0,
+      clipPath:'url(#'+clipId+')',
+      padding:'7px 8px 5px',
+      display:'flex',flexDirection:'column',
+      fontFamily:'Georgia,serif',
+      boxSizing:'border-box',
+    }},
+      // Title + wax seal
+      React.createElement('div',{style:{position:'relative',marginBottom:'2px',paddingRight:(sealR*2+4)+'px'}},
+        React.createElement('div',{style:{fontSize:titleFs+'px',fontWeight:700,color:'#160f06',lineHeight:1.15,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},spell.name),
+        React.createElement('div',{style:{
+          position:'absolute',top:0,right:0,
+          width:(sealR*2)+'px',height:(sealR*2)+'px',
+          borderRadius:'50%',
+          background:'radial-gradient(circle at 38% 35%, #c04040, #6e1818)',
+          boxShadow:'0 1px 4px rgba(0,0,0,0.45)',
+          border:'1px solid #9e2828',
+          display:'flex',alignItems:'center',justifyContent:'center',
+          color:'#fff5eb',fontWeight:700,fontSize:Math.round(sealR*0.78)+'px',
+          fontFamily:'Arial,sans-serif',
+        }},spell.level===0?'C':String(spell.level))
+      ),
+      // Subtitle
+      React.createElement('div',{style:{fontSize:'7px',textAlign:'center',color:'#5a3f18',fontStyle:'italic',marginBottom:'2px'}},subtitle),
+      // Divider 1
+      scrollDividerEl(),
+      // Stats 2×2 grid
+      React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',marginBottom:'1px'}},
+        ...[ ['Casting time',spell.castingTime],['Range',spell.range],
+             ['Components',compStr.replace(/\([^)]+\)/,'').trim()],['Duration',spell.duration]
+        ].map(([lbl,val],idx)=>
+          React.createElement('div',{key:lbl,style:{
+            padding:'2px 4px',textAlign:'center',
+            borderRight:idx%2===0?'0.5px solid #9a7040':'none',
+            borderBottom:idx<2?'0.5px solid #9a7040':'none',
+          }},
+            React.createElement('div',{style:{fontSize:'6px',fontStyle:'italic',color:'#7a5a28',marginBottom:'1px'}},lbl),
+            React.createElement('div',{style:{fontSize:'8px',fontWeight:700,color:'#160f06',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},val||'\u2014')
+          )
+        )
+      ),
+      // Divider 2
+      scrollDividerEl(),
+      // Description
+      React.createElement('div',{style:{flex:1,fontSize:descFs+'px',color:'#1e1508',lineHeight:'1.3',overflow:'hidden'}},desc0),
+      // Materials footer
+      hasMat&&matText&&React.createElement('div',{style:{borderTop:'0.5px solid #c8b490',paddingTop:'2px',fontSize:'7px',color:'#7a5a28',fontStyle:'italic',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:'2px'}},'\u2697 '+matText)
+    )
   );
 }
 
@@ -2539,23 +2617,6 @@ function PrintCardsModal({ onClose, filtered, allSpells }) {
       React.createElement('div',{style:{display:'flex',gap:'8px',flexWrap:'wrap'}},
         React.createElement('button',{onClick:()=>setPaper('letter'),style:pill(paper==='letter')},'US Letter'),
         React.createElement('button',{onClick:()=>setPaper('a4'),style:pill(paper==='a4')},'A4')
-      )
-    ),
-    // Double-sided
-    React.createElement('div',null,
-      React.createElement('span',{style:secLabel},'Double-Sided Printing'),
-      React.createElement('label',{style:{display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',marginBottom:'8px'}},
-        React.createElement('input',{type:'checkbox',checked:doubleSided,onChange:e=>setDoubleSided(e.target.checked),style:{accentColor:'var(--accent)',width:'15px',height:'15px',cursor:'pointer'}}),
-        React.createElement('span',{style:{fontSize:'13px',color:'var(--text2)'}},'Print decorative class backs')
-      ),
-      doubleSided&&React.createElement('div',{style:{marginLeft:'25px'}},
-        React.createElement('div',{style:{fontSize:'12px',color:'var(--text3)',marginBottom:'6px'}},'Card back design:'),
-        React.createElement('select',{value:backClass,onChange:e=>setBackClass(e.target.value),style:{padding:'5px 8px',background:'var(--bg3)',border:'1px solid var(--border2)',borderRadius:'8px',color:'var(--text)',fontSize:'13px',fontFamily:'Inter,sans-serif',cursor:'pointer'}},
-          React.createElement('option',{value:'auto'},'Auto (by spell\u2019s class)'),
-          ['Barbarian','Bard','Cleric','Druid','Fighter','Mechanist','Monk','Paladin','Ranger','Rogue','Sorcerer','Theurge','Vanguard','Warlock','Witch','Wizard'].map(c=>
-            React.createElement('option',{key:c,value:c},c)
-          )
-        )
       )
     ),
     // Advanced toggle
@@ -2698,10 +2759,6 @@ function PrintCardsModal({ onClose, filtered, allSpells }) {
         // RIGHT: Preview
         React.createElement('div',{style:{width:'270px',flexShrink:0,borderLeft:'1px solid var(--border)',display:'flex',flexDirection:'column',alignItems:'center',padding:'16px 12px',gap:'12px',overflowY:'auto'}},
           React.createElement('span',{style:secLabel},'Live Preview'),
-          doubleSided&&React.createElement('div',{style:{display:'flex',gap:'6px'}},
-            React.createElement('button',{onClick:()=>setPreviewSide('front'),style:pill(previewSide==='front')},'Front'),
-            React.createElement('button',{onClick:()=>setPreviewSide('back'),style:pill(previewSide==='back')},'Back')
-          ),
           React.createElement('div',{style:{transformOrigin:'top center',transform:'scale('+previewScale+')',width:opts.w*PX+'px',flexShrink:0}},
             previewSide==='back'
               ? React.createElement(CardBackPreview,{cls:backClass==='auto'?((previewSpell&&previewSpell.classes&&previewSpell.classes[0])||'Wizard'):backClass})
