@@ -1693,6 +1693,12 @@ function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,sh
   const {selTrad,selLevel,selSchool,selClass,selSub,ritual,selBook,selComp,selTag,selSave,selDmg,selConc,selCast,selRange,selDur}=filters;
   const activeCount=(selTrad||[]).length+(selLevel||[]).length+(selSchool||[]).length+(selClass||[]).length+(selSub||[]).length+(ritual?1:0)+(selBook||[]).length+(selComp||[]).length+(selTag||[]).length+(selSave||[]).length+(selDmg||[]).length+(selConc?1:0)+(selCast||[]).length+(selRange||[]).length+(selDur||[]).length;
   const clearFilters=()=>setFilters(f=>({...f,selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]}));
+  const navigateToTab=nextTab=>{
+    setShowHomebrew(false);
+    setFilterOpen(false);
+    setSelected(null);
+    setTab(nextTab);
+  };
 
   useEffect(()=>{ document.body.style.overflow=selected?'hidden':''; return ()=>{document.body.style.overflow=''}; },[selected]);
 
@@ -1764,11 +1770,11 @@ function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,sh
           React.createElement(DetailContent,{spell:selected})
         ),
         React.createElement('nav',{className:'tab-bar',style:{position:'relative',flexShrink:0,zIndex:601}},
-          React.createElement('button',{className:'tab-btn active',onClick:()=>setSelected(null)},
+          React.createElement('button',{className:'tab-btn active',onClick:()=>navigateToTab('spells')},
             React.createElement('span',{className:'tab-icon tab-icon-spells'},'✦'),
             React.createElement('span',{className:'tab-label'},'Spells')
           ),
-          React.createElement('button',{className:'tab-btn',onClick:()=>{setSelected(null);setTab('characters');}},
+          React.createElement('button',{className:'tab-btn',onClick:()=>navigateToTab('characters')},
             React.createElement('span',{className:'tab-icon'},'⚔'),
             React.createElement('span',{className:'tab-label'},'Characters')
           )
@@ -1808,15 +1814,15 @@ function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,sh
     ),
     // Tab bar
     React.createElement('nav',{className:'tab-bar'},
-      React.createElement('button',{className:`tab-btn${tab==='spells'?' active':''}`,onClick:()=>setTab('spells')},
+      React.createElement('button',{className:`tab-btn${tab==='spells'?' active':''}`,onClick:()=>navigateToTab('spells')},
         React.createElement('span',{className:'tab-icon tab-icon-spells'},'✦'),
         React.createElement('span',{className:'tab-label'},'Spells')
       ),
-      React.createElement('button',{className:`tab-btn${tab==='characters'?' active':''}`,onClick:()=>setTab('characters')},
+      React.createElement('button',{className:`tab-btn${tab==='characters'?' active':''}`,onClick:()=>navigateToTab('characters')},
         React.createElement('span',{className:'tab-icon'},'⚔'),
         React.createElement('span',{className:'tab-label'},'Characters')
       ),
-      React.createElement('button',{className:`tab-btn${tab==='settings'?' active':''}`,onClick:()=>setTab('settings')},
+      React.createElement('button',{className:`tab-btn${tab==='settings'?' active':''}`,onClick:()=>navigateToTab('settings')},
         React.createElement('svg',{width:22,height:22,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'},
           React.createElement('circle',{cx:12,cy:12,r:3}),
           React.createElement('path',{d:'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'})
@@ -1882,13 +1888,25 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
   useEffect(()=>{const h=()=>setViewportW(window.innerWidth);window.addEventListener('resize',h);return()=>window.removeEventListener('resize',h);},[]);
   // Auto-hide sidebar when viewport < sum of all 3 min-widths (240+336+360+10 handles ≈ 960)
   const hideSidebar=tab==='spells'&&viewportW<960;
+  const navigateToTab=nextTab=>{
+    setShowHomebrew(false);
+    setSelected(null);
+    setFilterDropdownOpen(false);
+    setShowSettings(false);
+    setTab(nextTab);
+  };
+  const toggleSettings=()=>{
+    setShowHomebrew(false);
+    setSelected(null);
+    setShowSettings(s=>!s);
+  };
 
   return React.createElement('div',{className:'desktop-layout'},
     React.createElement('header',{className:'d-header'},
       React.createElement('div',{className:'logo'},'Valiant Spell Tracker',React.createElement('small',null,'')),
       React.createElement('div',{className:'d-tabs'},
-        React.createElement('button',{className:`d-tab-btn${tab==='spells'?' active':''}`,onClick:()=>setTab('spells')},'✦ Spells'),
-        React.createElement('button',{className:`d-tab-btn${tab==='characters'?' active':''}`,onClick:()=>setTab('characters')},'⚔ Characters')
+        React.createElement('button',{className:`d-tab-btn${tab==='spells'?' active':''}`,onClick:()=>navigateToTab('spells')},'✦ Spells'),
+        React.createElement('button',{className:`d-tab-btn${tab==='characters'?' active':''}`,onClick:()=>navigateToTab('characters')},'⚔ Characters')
       ),
       tab==='spells'&&React.createElement('span',{style:{fontSize:'13px',color:'var(--text3)',marginLeft:'auto'}},`${filtered.length} / ${SPELLS_DATA.length} spells`),
       React.createElement('div',{style:{display:'flex',alignItems:'center',gap:'4px',marginLeft:'8px'}},
@@ -1912,7 +1930,7 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
             React.createElement('rect',{x:'6',y:'14',width:'12',height:'8'})
           )
         ),
-        React.createElement('button',{className:'icon-btn',onClick:()=>setShowSettings(s=>!s),title:'Settings',style:{color:'var(--text2)'}},
+        React.createElement('button',{className:'icon-btn',onClick:toggleSettings,title:'Settings',style:{color:'var(--text2)'}},
           React.createElement('svg',{width:20,height:20,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.8,strokeLinecap:'round',strokeLinejoin:'round'},
             React.createElement('circle',{cx:12,cy:12,r:3}),
             React.createElement('path',{d:'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'})
