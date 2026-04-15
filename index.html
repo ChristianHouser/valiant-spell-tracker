@@ -54,6 +54,7 @@ body {
 @media (hover: hover) { .spell-row:hover { background: var(--bg3); } }
 .spell-row:active { background: var(--bg3); }
 .cd-filter-bar::-webkit-scrollbar { display: none; }
+.stat-input::placeholder { color: rgba(255,255,255,0.35); }
 .spell-row.selected { background: var(--accent-bg); border-left: 2px solid var(--accent); padding-left: 14px; }
 .level-badge { width: 32px; height: 32px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--text2); flex-shrink: 0; } .add-spell-btn { width: 30px; height: 30px; border-radius: 50%; background: transparent; border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 300; color: var(--accent); flex-shrink: 0; cursor: pointer; line-height: 1; -webkit-tap-highlight-color: transparent; transition: background 0.12s; } .add-spell-btn:hover { background: var(--accent-bg); }
 .spell-info { flex: 1; min-width: 0; }
@@ -1352,7 +1353,7 @@ function CharacterDetail({character, onBack, onUpdate}) {
           [['Spell attack',spellAttack,v=>{setSpellAttack(v);saveRef.current({spellAttack:v});}],
            ['Spell save DC',spellSaveDC,v=>{setSpellSaveDC(v);saveRef.current({spellSaveDC:v});}]
           ].map(([label,val,setter])=>React.createElement('div',{key:label,style:{flex:1,background:'rgba(255,255,255,0.1)',borderRadius:'10px',border:'1px solid rgba(255,255,255,0.2)',padding:'8px',textAlign:'center'}},
-            React.createElement('input',{type:'number',value:val,onChange:e=>setter(parseInt(e.target.value)||0),style:{background:'transparent',border:'none',color:'#fff',fontSize:'22px',fontWeight:700,textAlign:'center',width:'100%',outline:'none',padding:0,fontFamily:'Inter,sans-serif'}}),
+            React.createElement('input',{className:'stat-input',type:'text',inputMode:'numeric',pattern:'[0-9]*',value:val===0?'':val,placeholder:'0',onChange:e=>setter(parseInt(e.target.value)||0),style:{background:'transparent',border:'none',color:'#fff',fontSize:'22px',fontWeight:700,textAlign:'center',width:'100%',outline:'none',padding:0,fontFamily:'Inter,sans-serif'}}),
             React.createElement('div',{style:{fontSize:'11px',color:'rgba(255,255,255,0.6)',marginTop:'2px'}},label)
           ))
         )
