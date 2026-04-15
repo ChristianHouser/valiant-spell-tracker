@@ -1407,7 +1407,7 @@ function CharacterDetail({character, onBack, onUpdate}) {
             ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},cdActiveCount>0?'No spells match the active filters.':'No spells known yet. Go to Class tab to add spells.')
             :groupByLevel(filteredKnown).map(g=>React.createElement('div',{key:g.level},
                 React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:true,showEye:true,stickyTop:stickyBarH}),
-                g.spells.map(s=>React.createElement(SpellRowFull,{key:s.name,s,
+                !collapsedLevels.has(g.level)&&g.spells.map(s=>React.createElement(SpellRowFull,{key:s.name,s,
                   btnLabel:'Prepare',
                   btnActive:preparedSpells.includes(s.name),
                   onToggle:()=>togglePrepared(s.name),
@@ -1419,7 +1419,7 @@ function CharacterDetail({character, onBack, onUpdate}) {
             ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},cdActiveCount>0?'No spells match the active filters.':'No spells prepared yet. Go to Known tab to prepare spells.')
             :groupByLevel(filteredPrepared).map(g=>React.createElement('div',{key:g.level},
                 React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:true,showEye:true,stickyTop:stickyBarH}),
-                g.spells.map(s=>React.createElement(SpellRowPrepared,{key:s.name,s,onOpen:()=>setViewingSpell(s)}))
+                !collapsedLevels.has(g.level)&&g.spells.map(s=>React.createElement(SpellRowPrepared,{key:s.name,s,onOpen:()=>setViewingSpell(s)}))
               ))
         )
       )
