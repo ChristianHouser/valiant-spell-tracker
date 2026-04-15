@@ -237,7 +237,8 @@ body:not(.light) .spell-higher-label { color: #6a9fd4; }
 .hb-toggle { width: 100%; padding: 13px 16px; background: var(--bg3); border: 1px solid var(--border2); border-radius: 12px; color: var(--text3); font-size: 15px; font-weight: 500; text-align: left; cursor: pointer; transition: all 0.15s; font-family: 'Inter',sans-serif; -webkit-tap-highlight-color: transparent; }
 .hb-toggle.active { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
 .hb-textarea { min-height: 140px; resize: vertical; line-height: 1.6; }
-.hb-spell-row { display: flex; align-items: center; padding: 12px 14px; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r-lg); margin-bottom: 10px; gap: 10px; }
+.hb-spell-row { display: flex; align-items: center; padding: 12px 14px; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r-lg); margin-bottom: 10px; gap: 10px; cursor: pointer; transition: background 0.1s, border-color 0.1s; -webkit-tap-highlight-color: transparent; }
+.hb-spell-row:hover { background: var(--bg3); border-color: var(--border); }
 .hb-spell-info { flex: 1; min-width: 0; }
 .hb-spell-name { font-weight: 600; color: var(--text); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hb-spell-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
@@ -3053,7 +3054,7 @@ function HomebrewSpellForm({initial,onSave,onClose}) {
       React.createElement('div',{style:{width:'40px',flexShrink:0}})
     ),
     React.createElement('div',{className:'homebrew-body'},
-      React.createElement('div',{className:'create-body'},
+      React.createElement('div',{className:'create-body',style:{paddingBottom:'calc(40px + var(--tab-h) + env(safe-area-inset-bottom))'}},
         // Name
         React.createElement('div',{className:'create-field'},
           React.createElement('input',{className:'create-input',placeholder:'Spell Name',value:name,onChange:e=>setName(e.target.value)})
@@ -3144,11 +3145,15 @@ function HomebrewPage({onClose}) {
   const [spells,setSpells]=useState(loadHomebrewSpells);
   const [showForm,setShowForm]=useState(false);
   const [editingSpell,setEditingSpell]=useState(null);
+  const [selectedSpell,setSelectedSpell]=useState(null);
   useEffect(()=>{ return pushBack(onClose); },[]);
+  useEffect(()=>{ if(selectedSpell){ return pushBack(()=>setSelectedSpell(null)); } },[selectedSpell]);
 
   const openNew=()=>{ setEditingSpell(null); setShowForm(true); };
   const openEdit=spell=>{ setEditingSpell(spell); setShowForm(true); };
   const closeForm=()=>{ setShowForm(false); setEditingSpell(null); };
+  const openDetail=spell=>setSelectedSpell(spell);
+  const closeDetail=()=>setSelectedSpell(null);
 
   const handleSaveSpell=spell=>{
     setSpells(prev=>{
@@ -3157,6 +3162,7 @@ function HomebrewPage({onClose}) {
       return next;
     });
     closeForm();
+    setSelectedSpell(spell);
   };
 
   const handleDelete=id=>{
@@ -3196,7 +3202,7 @@ function HomebrewPage({onClose}) {
     React.createElement('div',{className:'homebrew-header'},
       React.createElement('button',{className:'homebrew-back-btn','aria-label':'Back',onClick:onClose},'←'),
       React.createElement('div',{className:'homebrew-title'},'Homebrew Spells'),
-      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:'6px',color:'var(--text3)',flexShrink:0}},
+      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:'10px',color:'var(--text3)',flexShrink:0}},
         cloudUpSvg,
         cloudDownSvg
       )
@@ -3215,7 +3221,7 @@ function HomebrewPage({onClose}) {
             React.createElement('button',{className:'add-char-btn',style:{marginTop:'8px'},onClick:openNew},'+ New Custom Spell')
           )
         : React.createElement('div',{style:{padding:'16px'}},
-            spells.map(s=>React.createElement('div',{key:s.id,className:'hb-spell-row'},
+            spells.map(s=>React.createElement('div',{key:s.id,className:'hb-spell-row',onClick:()=>openDetail(s)},
               React.createElement('div',{className:'hb-spell-info'},
                 React.createElement('div',{className:'hb-spell-name'},s.name||'Unnamed Spell'),
                 React.createElement('div',{className:'hb-spell-meta'},
@@ -3223,11 +3229,22 @@ function HomebrewPage({onClose}) {
                 )
               ),
               React.createElement('div',{className:'hb-spell-actions'},
-                React.createElement('button',{className:'hb-action-btn',title:'Edit spell',onClick:()=>openEdit(s)},editSvg),
-                React.createElement('button',{className:'hb-action-btn danger',title:'Delete spell',onClick:()=>handleDelete(s.id)},deleteSvg)
+                React.createElement('button',{className:'hb-action-btn',title:'Edit spell',onClick:e=>{e.stopPropagation();openEdit(s);}},editSvg),
+                React.createElement('button',{className:'hb-action-btn danger',title:'Delete spell',onClick:e=>{e.stopPropagation();handleDelete(s.id);}},deleteSvg)
               )
             ))
           )
+    ),
+    selectedSpell&&React.createElement('div',{className:'m-detail-overlay open',style:{zIndex:212}},
+      React.createElement('div',{style:{display:'flex',flexDirection:'column',height:'100%'}},
+        React.createElement('div',{className:'m-detail-topbar'},
+          React.createElement('button',{className:'m-back-btn',onClick:closeDetail},'← Back'),
+          React.createElement('span',{className:'m-topbar-title',style:{flex:1}},selectedSpell.name)
+        ),
+        React.createElement('div',{className:'m-detail-body',style:{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch'}},
+          React.createElement(DetailContent,{spell:selectedSpell})
+        )
+      )
     ),
     // Form overlay
     (showForm||editingSpell)&&React.createElement(HomebrewSpellForm,{
