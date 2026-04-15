@@ -963,6 +963,15 @@ function CharacterDetail({character, onBack, onUpdate}) {
   const scrollRef = useRef(null);
   const headerContentRef = useRef(null);
   const saveRef = useRef(null);
+  const stickyBarRef = useRef(null);
+  const [stickyBarH, setStickyBarH] = useState(48);
+  useEffect(()=>{
+    const el=stickyBarRef.current;
+    if(!el) return;
+    const obs=new ResizeObserver(([e])=>setStickyBarH(e.contentRect.height));
+    obs.observe(el);
+    return()=>obs.disconnect();
+  },[]);
   const [cdFilterOpen,setCdFilterOpen]=useState(false);
   const [cdConc,setCdConc]=useState('');
   const [cdRitual,setCdRitual]=useState('');
@@ -1114,14 +1123,14 @@ function CharacterDetail({character, onBack, onUpdate}) {
   }
 
   // Level group header
-  function LvlHeader({level,count,showCircles,showEye}){
+  function LvlHeader({level,count,showCircles,showEye,stickyTop=0}){
     const hasSlots=showCircles&&level>0&&totalSlots[level-1]>0;
     const isExp=expandedCircle===level;
     const isHidden=collapsedLevels.has(level);
     // Right-column width matches the spell-row right column
     const rightW=72;
     return React.createElement('div',{
-      className:'level-header',style:{position:'sticky',top:0,zIndex:5,padding:isExp?'8px 16px 10px':'8px 16px'}
+      className:'level-header',style:{position:'sticky',top:stickyTop,zIndex:5,padding:isExp?'8px 16px 10px':'8px 16px'}
     },
       React.createElement('div',{style:{display:'flex',alignItems:'center',width:'100%'}},
         // Left: circle name — same fixed width as right col so center is truly centered
@@ -1351,7 +1360,7 @@ function CharacterDetail({character, onBack, onUpdate}) {
       ),
 
       // ── STICKY TAB BAR + FILTER PANEL ──
-      React.createElement('div',{style:{position:'sticky',top:0,zIndex:20,boxShadow:'0 2px 8px rgba(0,0,0,0.5)'}},
+      React.createElement('div',{ref:stickyBarRef,style:{position:'sticky',top:0,zIndex:20,boxShadow:'0 2px 8px rgba(0,0,0,0.5)'}},
         React.createElement('div',{style:{display:'flex',background:'#1a3a5c',borderTop:'1px solid rgba(255,255,255,0.1)'}},
           ['Known','Prepared','Class'].map(t=>React.createElement('button',{key:t,onClick:()=>setSubTab(t.toLowerCase()),style:{flex:1,padding:'12px',background:'transparent',border:'none',borderBottom:subTab===t.toLowerCase()?'2px solid #fff':'2px solid transparent',color:subTab===t.toLowerCase()?'#fff':'rgba(255,255,255,0.6)',fontSize:'14px',fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}},t))
         ),
@@ -1385,7 +1394,7 @@ function CharacterDetail({character, onBack, onUpdate}) {
           filteredClass.length===0
             ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},cdActiveCount>0?'No spells match the active filters.':'No spells available.')
             :groupByLevel(filteredClass).map(g=>React.createElement('div',{key:g.level},
-                React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:false,showEye:true}),
+                React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:false,showEye:true,stickyTop:stickyBarH}),
                 !collapsedLevels.has(g.level)&&g.spells.map(s=>React.createElement(SpellRowFull,{key:s.name,s,
                   btnLabel:'Know',
                   btnActive:knownSpells.includes(s.name),
@@ -1397,7 +1406,7 @@ function CharacterDetail({character, onBack, onUpdate}) {
           filteredKnown.length===0
             ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},cdActiveCount>0?'No spells match the active filters.':'No spells known yet. Go to Class tab to add spells.')
             :groupByLevel(filteredKnown).map(g=>React.createElement('div',{key:g.level},
-                React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:true}),
+                React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:true,showEye:true,stickyTop:stickyBarH}),
                 g.spells.map(s=>React.createElement(SpellRowFull,{key:s.name,s,
                   btnLabel:'Prepare',
                   btnActive:preparedSpells.includes(s.name),
@@ -1409,7 +1418,7 @@ function CharacterDetail({character, onBack, onUpdate}) {
           filteredPrepared.length===0
             ?React.createElement('div',{style:{textAlign:'center',padding:'60px 24px',color:'var(--text3)',fontSize:'15px'}},cdActiveCount>0?'No spells match the active filters.':'No spells prepared yet. Go to Known tab to prepare spells.')
             :groupByLevel(filteredPrepared).map(g=>React.createElement('div',{key:g.level},
-                React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:true}),
+                React.createElement(LvlHeader,{level:g.level,count:g.spells.length,showCircles:true,showEye:true,stickyTop:stickyBarH}),
                 g.spells.map(s=>React.createElement(SpellRowPrepared,{key:s.name,s,onOpen:()=>setViewingSpell(s)}))
               ))
         )
