@@ -971,6 +971,10 @@ function CharacterDetail({character, onBack, onUpdate}) {
   const [cdTag,setCdTag]=useState([]);
   const [cdDmgOpen,setCdDmgOpen]=useState(false);
   const [cdTagOpen,setCdTagOpen]=useState(false);
+  const [cdDmgAlign,setCdDmgAlign]=useState('right');
+  const [cdTagAlign,setCdTagAlign]=useState('right');
+  const cdDmgBtnRef=useRef(null);
+  const cdTagBtnRef=useRef(null);
 
   const totalSlots = calcSpellSlots(character);
   const maxCircle = maxSpellCircle(character);
@@ -1360,14 +1364,14 @@ function CharacterDetail({character, onBack, onUpdate}) {
           React.createElement('button',{className:`chip${cdRitual==='yes'?' on':''}`,onClick:()=>setCdRitual(c=>c==='yes'?'':'yes')},'✓ Ritual'),
           React.createElement('button',{className:`chip${cdRitual==='no'?' on':''}`,onClick:()=>setCdRitual(c=>c==='no'?'':'no')},'✗ Ritual'),
           React.createElement('div',{style:{position:'relative',zIndex:26}},
-            React.createElement('button',{className:`chip${cdDmg.length?' on':''}`,onClick:e=>{e.stopPropagation();setCdDmgOpen(o=>!o);setCdTagOpen(false);}},'Damage Type',React.createElement('span',{style:{visibility:cdDmg.length?'visible':'hidden'}},' ('+cdDmg.length+')'),' ▾'),
-            cdDmgOpen&&React.createElement('div',{style:{position:'absolute',top:'calc(100% + 4px)',right:0,left:'auto',zIndex:27,background:'var(--bg2)',border:'1px solid var(--border2)',borderRadius:'10px',padding:'10px',boxShadow:'0 4px 16px rgba(0,0,0,0.25)',display:'flex',flexWrap:'wrap',gap:'6px',minWidth:'200px',maxWidth:'min(300px, calc(100vw - 24px))'}},
+            React.createElement('button',{ref:cdDmgBtnRef,className:`chip${cdDmg.length?' on':''}`,onClick:e=>{e.stopPropagation();const r=cdDmgBtnRef.current.getBoundingClientRect();setCdDmgAlign(r.left+r.width/2<window.innerWidth/2?'left':'right');setCdDmgOpen(o=>!o);setCdTagOpen(false);}},'Damage Type',React.createElement('span',{style:{visibility:cdDmg.length?'visible':'hidden'}},' ('+cdDmg.length+')'),' ▾'),
+            cdDmgOpen&&React.createElement('div',{style:{position:'absolute',top:'calc(100% + 4px)',...(cdDmgAlign==='left'?{left:0,right:'auto'}:{right:0,left:'auto'}),zIndex:27,background:'var(--bg2)',border:'1px solid var(--border2)',borderRadius:'10px',padding:'10px',boxShadow:'0 4px 16px rgba(0,0,0,0.25)',display:'flex',flexWrap:'wrap',gap:'6px',minWidth:'200px',maxWidth:'min(300px, calc(100vw - 24px))'}},
               allDmgTypes.map(d=>React.createElement('button',{key:d,className:`chip${cdDmg.includes(d)?' on':''}`,onClick:e=>{e.stopPropagation();setCdDmg(prev=>prev.includes(d)?prev.filter(x=>x!==d):[...prev,d]);}},d))
             )
           ),
           React.createElement('div',{style:{position:'relative',zIndex:26}},
-            React.createElement('button',{className:`chip${cdTag.length?' on':''}`,onClick:e=>{e.stopPropagation();setCdTagOpen(o=>!o);setCdDmgOpen(false);}},'Tag',React.createElement('span',{style:{visibility:cdTag.length?'visible':'hidden'}},' ('+cdTag.length+')'),' ▾'),
-            cdTagOpen&&React.createElement('div',{style:{position:'absolute',top:'calc(100% + 4px)',right:0,left:'auto',zIndex:27,background:'var(--bg2)',border:'1px solid var(--border2)',borderRadius:'10px',padding:'10px',boxShadow:'0 4px 16px rgba(0,0,0,0.25)',display:'flex',flexWrap:'wrap',gap:'6px',minWidth:'200px',maxWidth:'min(300px, calc(100vw - 24px))'}},
+            React.createElement('button',{ref:cdTagBtnRef,className:`chip${cdTag.length?' on':''}`,onClick:e=>{e.stopPropagation();const r=cdTagBtnRef.current.getBoundingClientRect();setCdTagAlign(r.left+r.width/2<window.innerWidth/2?'left':'right');setCdTagOpen(o=>!o);setCdDmgOpen(false);}},'Tag',React.createElement('span',{style:{visibility:cdTag.length?'visible':'hidden'}},' ('+cdTag.length+')'),' ▾'),
+            cdTagOpen&&React.createElement('div',{style:{position:'absolute',top:'calc(100% + 4px)',...(cdTagAlign==='left'?{left:0,right:'auto'}:{right:0,left:'auto'}),zIndex:27,background:'var(--bg2)',border:'1px solid var(--border2)',borderRadius:'10px',padding:'10px',boxShadow:'0 4px 16px rgba(0,0,0,0.25)',display:'flex',flexWrap:'wrap',gap:'6px',minWidth:'200px',maxWidth:'min(300px, calc(100vw - 24px))'}},
               allTags.map(t=>React.createElement('button',{key:t,className:`chip${cdTag.includes(t)?' on':''}`,onClick:e=>{e.stopPropagation();setCdTag(prev=>prev.includes(t)?prev.filter(x=>x!==t):[...prev,t]);}},t))
             )
           ),
