@@ -1440,10 +1440,10 @@ function CharacterDetail({character, onBack, onUpdate}) {
 }
 
 
-function CharactersPage({isMobile}) {
+function CharactersPage({isMobile,selectedCharId,setSelectedCharId}) {
   const [chars,setChars]=useState(loadChars);
   const [creating,setCreating]=useState(false);
-  const [selectedChar,setSelectedChar]=useState(null);
+  const selectedChar=chars.find(c=>c.id===selectedCharId)||null;
 
   const handleSave=char=>{
     const next=[...chars,char];
@@ -1458,12 +1458,12 @@ function CharactersPage({isMobile}) {
   const handleUpdate=(updated)=>{
     const next=chars.map(c=>c.id===updated.id?updated:c);
     setChars(next); saveChars(next);
-    setSelectedChar(updated);
+    setSelectedCharId(updated.id);
   };
   const classOf=c=>[...c.classes.map(cls=>`${cls}${c.levels[cls]>0?` ${c.levels[cls]}`:''}`).join(', ')].join('');
 
-  useEffect(()=>{ if(selectedChar){ return pushBack(()=>setSelectedChar(null)); } },[!!selectedChar]);
-  if (selectedChar) return React.createElement(CharacterDetail,{character:selectedChar,onBack:()=>setSelectedChar(null),onUpdate:handleUpdate});
+  useEffect(()=>{ if(selectedCharId){ return pushBack(()=>setSelectedCharId(null)); } },[!!selectedCharId]);
+  if (selectedChar) return React.createElement(CharacterDetail,{character:selectedChar,onBack:()=>setSelectedCharId(null),onUpdate:handleUpdate});
   return React.createElement('div',{className:isMobile?'chars-page':'chars-page-desktop'},
     React.createElement('div',{style:isMobile?{width:'100%'}:{width:'100%',maxWidth:'560px',alignSelf:'center'}},
     React.createElement('div',{className:'chars-header-row'},
@@ -1479,7 +1479,7 @@ function CharactersPage({isMobile}) {
           React.createElement('div',{className:'chars-empty-sub'},'Tap "+ New Character" to create one'),
           React.createElement('button',{className:'add-char-btn',style:{marginTop:'8px'},onClick:()=>setCreating(true)},'+ New Character')
         )
-      : chars.map(c=>React.createElement('div',{key:c.id,className:'char-card',onClick:()=>setSelectedChar(c)},
+      : chars.map(c=>React.createElement('div',{key:c.id,className:'char-card',onClick:()=>setSelectedCharId(c.id)},
           React.createElement('div',{className:'char-avatar'},c.name.charAt(0).toUpperCase()),
           React.createElement('div',{className:'char-info'},
             React.createElement('div',{className:'char-name'},c.name),
@@ -1650,8 +1650,7 @@ function SettingsPage({dark,setDark,onShowAbout,onShowTutorial}) {
 // ══════════════════════════════════════════════════════════════
 // MOBILE APP
 // ══════════════════════════════════════════════════════════════
-function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint}) {
-  const [tab,setTab]=useState('spells');
+function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint,tab,setTab,selectedCharId,setSelectedCharId}) {
   const [selected,setSelected]=useState(null);
   const [filterOpen,setFilterOpen]=useState(false);
   const [addSpellTarget,setAddSpellTarget]=useState(null);
@@ -1707,7 +1706,7 @@ function MobileApp({dark,setDark,search,setSearch,filters,setFilters,filtered,sh
       React.createElement(GroupedList,{spells:filtered,selected,onSelect:setSelected,onAddSpell:spell=>setAddSpellTarget(spell)})
     ),
     tab==='characters'&&React.createElement('div',{style:{marginTop:'56px',height:`calc(100dvh - 56px - var(--tab-h))`,overflowY:'auto'}},
-      React.createElement(CharactersPage,{isMobile:true})
+      React.createElement(CharactersPage,{isMobile:true,selectedCharId,setSelectedCharId})
     ),
     // Spell detail overlay
     React.createElement('div',{className:`m-detail-overlay${selected?' open':''}`},
@@ -1826,8 +1825,7 @@ function ResizeHandle({getWidth, setWidth, min, max, invert, onReset}) {
 // ══════════════════════════════════════════════════════════════
 // DESKTOP APP
 // ══════════════════════════════════════════════════════════════
-function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint}) {
-  const [tab,setTab]=useState('spells');
+function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint,tab,setTab,selectedCharId,setSelectedCharId}) {
   const [selected,setSelected]=useState(null);
   const [addSpellTarget,setAddSpellTarget]=useState(null);
   const [showSettings,setShowSettings]=useState(false);
@@ -1912,7 +1910,7 @@ function DesktopApp({dark,setDark,search,setSearch,filters,setFilters,filtered,s
     ),
     tab==='characters'&&React.createElement('div',{className:'d-body'},
       React.createElement('div',{style:{flex:1,overflowY:'auto',padding:'20px'}},
-        React.createElement(CharactersPage,{isMobile:false})
+        React.createElement(CharactersPage,{isMobile:false,selectedCharId,setSelectedCharId})
       )
     ),
     addSpellTarget&&React.createElement(AddSpellPopup,{spell:addSpellTarget,onClose:()=>setAddSpellTarget(null),isMobile:false}),
@@ -2777,9 +2775,11 @@ function App() {
   const [showPrint,setShowPrint]=useState(false);
   const [search,setSearch]=useState('');
   const [filters,setFilters]=useState({selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]});
+  const [tab,setTab]=useState('spells');
+  const [selectedCharId,setSelectedCharId]=useState(null);
   useEffect(()=>{ document.body.classList.toggle('light',!dark); },[dark]);
   const filtered=useFiltered(search,filters);
-  const shared={dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint};
+  const shared={dark,setDark,search,setSearch,filters,setFilters,filtered,showTutorial,setShowTutorial,showPrint,setShowPrint,tab,setTab,selectedCharId,setSelectedCharId};
   return React.createElement('div',null,
     showSplash&&React.createElement(SplashScreen,{onDismiss:()=>setShowSplash(false)}),
     React.createElement(DesktopApp,shared),
