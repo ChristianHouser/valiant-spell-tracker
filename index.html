@@ -2476,6 +2476,8 @@ function PrintCardsModal({ onClose, filtered, allSpells }) {
   const [previewSide,setPreviewSide]= useState('front');
   const [generating, setGenerating] = useState(false);
   const [selFilter,  setSelFilter]  = useState('');
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [printFilters, setPrintFilters] = useState({selTrad:[],selLevel:[],selSchool:[],selClass:[],selSub:[],ritual:'',selBook:[],selComp:[],selTag:[],selSave:[],selDmg:[],selConc:'',selCast:[],selRange:[],selDur:[]});
   const isMobile = window.innerWidth < 700;
 
   // Persist settings when they change
@@ -2493,10 +2495,12 @@ function PrintCardsModal({ onClose, filtered, allSpells }) {
   const selectedSpells = allSpells.filter(s=>selectedNames.has(s.name));
   const pageCount = Math.max(1, Math.ceil(selectedSpells.length/perPage)) * (doubleSided?2:1);
 
+  const printFiltered = useFiltered('', printFilters);
+  const printActiveCount = [printFilters.selTrad,printFilters.selLevel,printFilters.selSchool,printFilters.selClass,printFilters.selSub,printFilters.selBook,printFilters.selComp,printFilters.selTag,printFilters.selSave,printFilters.selDmg,printFilters.selCast,printFilters.selRange,printFilters.selDur].filter(v=>v.length).length+(printFilters.ritual?1:0)+(printFilters.selConc?1:0);
   const visibleSpells = selFilter
-    ? allSpells.filter(s=>s.name.toLowerCase().includes(selFilter.toLowerCase())||
+    ? printFiltered.filter(s=>s.name.toLowerCase().includes(selFilter.toLowerCase())||
         (s.classes||[]).some(c=>c.toLowerCase().includes(selFilter.toLowerCase())))
-    : allSpells;
+    : printFiltered;
 
   const previewSpell = selectedSpells[previewIdx] || allSpells[0];
 
@@ -2608,10 +2612,16 @@ function PrintCardsModal({ onClose, filtered, allSpells }) {
         // Spell selection
         React.createElement('div',{style:{padding:'12px 14px',borderBottom:'1px solid var(--border)'}},
           React.createElement('span',{style:secLabel},'Select Spells'),
-          React.createElement('div',{style:{display:'flex',gap:'6px',marginBottom:'8px',flexWrap:'wrap'}},
-            React.createElement('button',{onClick:()=>setSelectedNames(new Set(allSpells.map(s=>s.name))),style:pill(false)},'All'),
-            React.createElement('button',{onClick:()=>setSelectedNames(new Set(filtered.map(s=>s.name))),style:pill(false)},'From filters'),
-            React.createElement('button',{onClick:()=>setSelectedNames(new Set()),style:pill(false)},'None')
+          React.createElement('div',{style:{display:'flex',gap:'6px',marginBottom:'8px',flexWrap:'wrap',alignItems:'center'}},
+            React.createElement('button',{onClick:()=>setSelectedNames(new Set(visibleSpells.map(s=>s.name))),style:pill(false)},'All'),
+            React.createElement('button',{onClick:()=>setSelectedNames(new Set()),style:pill(false)},'None'),
+            React.createElement('button',{onClick:()=>setFilterPanelOpen(o=>!o),style:{...pill(filterPanelOpen),display:'flex',alignItems:'center',gap:'4px'}},
+              React.createElement('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'},React.createElement('polygon',{points:'22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3'})),
+              printActiveCount>0&&React.createElement('span',null,printActiveCount)
+            )
+          ),
+          filterPanelOpen&&React.createElement('div',{style:{maxHeight:'260px',overflowY:'auto',marginBottom:'8px',border:'1px solid var(--border)',borderRadius:'10px',padding:'4px 0'}},
+            React.createElement(FilterSections,{filters:printFilters,setFilters:setPrintFilters})
           ),
           React.createElement('input',{placeholder:'Search…',value:selFilter,onChange:e=>setSelFilter(e.target.value),style:{width:'100%',padding:'7px 10px',background:'var(--bg3)',border:'1px solid var(--border2)',borderRadius:'8px',color:'var(--text)',fontSize:'13px',fontFamily:'Inter,sans-serif',boxSizing:'border-box'}}),
           React.createElement('div',{style:{maxHeight:'200px',overflowY:'auto',marginTop:'8px',border:'1px solid var(--border)',borderRadius:'8px'}},
@@ -2654,10 +2664,16 @@ function PrintCardsModal({ onClose, filtered, allSpells }) {
         React.createElement('div',{style:{width:'300px',flexShrink:0,borderRight:'1px solid var(--border)',display:'flex',flexDirection:'column',overflow:'hidden'}},
           React.createElement('div',{style:{padding:'12px 14px',borderBottom:'1px solid var(--border)',flexShrink:0}},
             React.createElement('span',{style:secLabel},'Select Spells'),
-            React.createElement('div',{style:{display:'flex',gap:'6px',marginBottom:'8px',flexWrap:'wrap'}},
-              React.createElement('button',{onClick:()=>setSelectedNames(new Set(allSpells.map(s=>s.name))),style:pill(false)},'All'),
-              React.createElement('button',{onClick:()=>setSelectedNames(new Set(filtered.map(s=>s.name))),style:pill(false)},'Filtered'),
-              React.createElement('button',{onClick:()=>setSelectedNames(new Set()),style:pill(false)},'None')
+            React.createElement('div',{style:{display:'flex',gap:'6px',marginBottom:'8px',flexWrap:'wrap',alignItems:'center'}},
+              React.createElement('button',{onClick:()=>setSelectedNames(new Set(visibleSpells.map(s=>s.name))),style:pill(false)},'All'),
+              React.createElement('button',{onClick:()=>setSelectedNames(new Set()),style:pill(false)},'None'),
+              React.createElement('button',{onClick:()=>setFilterPanelOpen(o=>!o),style:{...pill(filterPanelOpen),display:'flex',alignItems:'center',gap:'4px'}},
+                React.createElement('svg',{width:13,height:13,viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2.5,strokeLinecap:'round',strokeLinejoin:'round'},React.createElement('polygon',{points:'22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3'})),
+                printActiveCount>0&&React.createElement('span',null,printActiveCount)
+              )
+            ),
+            filterPanelOpen&&React.createElement('div',{style:{maxHeight:'260px',overflowY:'auto',marginBottom:'8px',border:'1px solid var(--border)',borderRadius:'10px',padding:'4px 0'}},
+              React.createElement(FilterSections,{filters:printFilters,setFilters:setPrintFilters})
             ),
             React.createElement('input',{placeholder:'Search spells or class\u2026',value:selFilter,onChange:e=>setSelFilter(e.target.value),style:{width:'100%',padding:'6px 10px',background:'var(--bg3)',border:'1px solid var(--border2)',borderRadius:'8px',color:'var(--text)',fontSize:'13px',fontFamily:'Inter,sans-serif',boxSizing:'border-box'}})
           ),
