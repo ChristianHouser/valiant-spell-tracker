@@ -3042,10 +3042,7 @@ function HomebrewSpellForm({initial,onSave,onClose}) {
         ),
         // Book
         React.createElement('div',{className:'create-field'},
-          React.createElement('select',{className:'create-input',value:book,onChange:e=>setBook(e.target.value),style:{appearance:'auto',cursor:'pointer'}},
-            React.createElement('option',{value:''},'Book (optional)'),
-            BOOKS_LIST.map(b=>React.createElement('option',{key:b,value:b},b))
-          )
+          React.createElement('input',{className:'create-input',placeholder:'Book (optional)',value:book,onChange:e=>setBook(e.target.value)})
         ),
         // Circle
         React.createElement('div',{className:'create-field'},
