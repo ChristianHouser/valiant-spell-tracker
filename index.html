@@ -2314,18 +2314,77 @@ function drawCardFront(doc, spell, x, y, w, h, opts) {
     }
   }catch(e){}
 
-  let rawDesc=spell.description||'';
-  if(opts.layout==='compact') rawDesc=rawDesc.split('\n')[0];
-  const descLines=doc.splitTextToSize(rawDesc,w-pad*2);
-  const hasMore=descLines.length>maxLines;
-  const showLines=hasMore?descLines.slice(0,maxLines-1):descLines.slice(0,maxLines);
-  if(hasMore) showLines.push('\u2026');
+  // Parse + render description paragraphs matching spell-list layout
+  const allParas=(spell.description||'').split('\n').filter(p=>p.trim());
+  const parasToRender=opts.layout==='compact'?allParas.slice(0,1):allParas;
+  let curY=descTop;
+  let flavorDone=false;
+  const textW=w-pad*2;
 
-  doc.setFont('times','normal'); doc.setFontSize(descSize); doc.setTextColor(30,22,12);
-  showLines.forEach((line,i)=>{ doc.text(line,x+pad,descTop+i*dLh+descSize/72*0.85); });
+  for(let pi=0;pi<parasToRender.length&&curY<descBot-dLh*0.5;pi++){
+    const p=parasToRender[pi].trim();
+    if(!p) continue;
+
+    // At Higher Circles section
+    if(p.startsWith('At Higher Circles')){
+      if(curY+dLh<descBot){
+        doc.setDrawColor(160,135,90); doc.setLineWidth(0.003);
+        doc.line(x+pad,curY+0.01,x+w-pad,curY+0.01);
+        curY+=0.055;
+      }
+      const hlBody=p.replace(/^At Higher Circles\.?\s*/,'');
+      doc.setFont('times','bolditalic'); doc.setFontSize(descSize); doc.setTextColor(90,65,35);
+      const labelW=doc.getTextWidth('At Higher Circles. ');
+      if(curY<descBot){ doc.text('At Higher Circles. ',x+pad,curY+descSize/72*0.85); }
+      doc.setFont('times','normal'); doc.setTextColor(30,22,12);
+      const hlLines=doc.splitTextToSize(hlBody,textW-labelW);
+      if(hlLines[0]&&curY<descBot) doc.text(hlLines[0],x+pad+labelW,curY+descSize/72*0.85);
+      curY+=dLh;
+      for(let j=1;j<hlLines.length&&curY<descBot;j++){ doc.text(hlLines[j],x+pad,curY+descSize/72*0.85); curY+=dLh; }
+      continue;
+    }
+
+    // Bullet point
+    if(p.startsWith('\u2022 ')||p.startsWith('• ')){
+      const btext=p.slice(2);
+      doc.setFont('times','normal'); doc.setFontSize(descSize); doc.setTextColor(90,65,35);
+      const diamond='\u25c6 ';
+      const dw=doc.getTextWidth(diamond);
+      if(curY<descBot) doc.text(diamond,x+pad,curY+descSize/72*0.85);
+      doc.setTextColor(30,22,12);
+      const bLines=doc.splitTextToSize(btext,textW-dw);
+      if(bLines[0]&&curY<descBot) doc.text(bLines[0],x+pad+dw,curY+descSize/72*0.85);
+      curY+=dLh;
+      for(let j=1;j<bLines.length&&curY<descBot;j++){ doc.text(bLines[j],x+pad+dw,curY+descSize/72*0.85); curY+=dLh; }
+      continue;
+    }
+
+    // Flavor text (first para, ≤1 sentence)
+    const sentCnt=(p.match(/[.!?](?:\s|$)/g)||[]).length;
+    if(!flavorDone&&pi===0&&sentCnt<=1){
+      flavorDone=true;
+      doc.setFont('times','italic'); doc.setFontSize(descSize); doc.setTextColor(90,65,35);
+      const fLines=doc.splitTextToSize(p,textW);
+      for(let j=0;j<fLines.length&&curY<descBot;j++){ doc.text(fLines[j],x+pad,curY+descSize/72*0.85); curY+=dLh; }
+      curY+=dLh*0.25;
+      continue;
+    }
+
+    // Normal body paragraph
+    doc.setFont('times','normal'); doc.setFontSize(descSize); doc.setTextColor(30,22,12);
+    const pLines=doc.splitTextToSize(p,textW);
+    for(let j=0;j<pLines.length&&curY<descBot;j++){ doc.text(pLines[j],x+pad,curY+descSize/72*0.85); curY+=dLh; }
+    curY+=dLh*0.15;
+  }
+
+  // Overflow ellipsis
+  if(curY>=descBot&&parasToRender.length>0){
+    doc.setFont('times','normal'); doc.setFontSize(descSize); doc.setTextColor(100,80,50);
+    doc.text('\u2026',x+pad,descBot-dLh*0.2+descSize/72*0.85);
+  }
 
   if(opts.layout==='notes'){
-    const notesTop=descTop+showLines.length*dLh+0.06;
+    const notesTop=curY+0.04;
     doc.setDrawColor(200,185,160); doc.setLineWidth(0.003);
     for(let ny=notesTop;ny+dLh*1.2<descBot;ny+=dLh*1.5) doc.line(x+pad,ny,x+w-pad,ny);
   }
@@ -2448,7 +2507,28 @@ function CardPreview({spell,opts}){
   const CIRC=['Cantrip','1st','2nd','3rd','4th','5th','6th','7th','8th','9th'];
   const circStr=spell.level===0?'cantrip':(CIRC[spell.level]||'')+' level';
   const subtitle=circStr+(spell.school?' '+(spell.school||'').toLowerCase():'');
-  const desc0=opts.layout==='compact'?(spell.description||'').split('\n')[0]:(spell.description||'');
+  const allDescParas=(spell.description||'').split('\n').filter(p=>p.trim());
+  const descParas=opts.layout==='compact'?allDescParas.slice(0,1):allDescParas;
+  let previewFlavorDone=false;
+  const descElements=descParas.map((p,pi)=>{
+    const trimmed=p.trim();
+    if(trimmed.startsWith('At Higher Circles')){
+      const body=trimmed.replace(/^At Higher Circles\.?\s*/,'');
+      return React.createElement('div',{key:'h'+pi,style:{fontSize:descFs+'px',lineHeight:'1.3',marginTop:'3px',paddingTop:'3px',borderTop:'0.5px solid #c8b490',color:'#1e1508'}},
+        React.createElement('span',{style:{fontWeight:700,fontStyle:'italic',color:'#5a3f18'}},'At Higher Circles. '),body);
+    }
+    if(trimmed.startsWith('\u2022 ')||trimmed.startsWith('• ')){
+      return React.createElement('div',{key:'b'+pi,style:{fontSize:descFs+'px',lineHeight:'1.3',display:'flex',gap:'3px',color:'#1e1508',marginBottom:'1px'}},
+        React.createElement('span',{style:{color:'#9a7040',flexShrink:0}},'\u25c6'),
+        React.createElement('span',null,trimmed.slice(2)));
+    }
+    const sentCnt=(trimmed.match(/[.!?](?:\s|$)/g)||[]).length;
+    if(!previewFlavorDone&&pi===0&&sentCnt<=1){
+      previewFlavorDone=true;
+      return React.createElement('div',{key:'f'+pi,style:{fontSize:descFs+'px',fontStyle:'italic',color:'#7a5a28',lineHeight:'1.3',marginBottom:'2px'}},trimmed);
+    }
+    return React.createElement('div',{key:'p'+pi,style:{fontSize:descFs+'px',color:'#1e1508',lineHeight:'1.3',marginBottom:'1px'}},trimmed);
+  });
 
   return React.createElement('div',{style:{position:'relative',width:cw+'px',height:ch+'px',flexShrink:0}},
     // SVG: dark backing + torn parchment fill
@@ -2509,8 +2589,8 @@ function CardPreview({spell,opts}){
       ),
       // Divider 2
       scrollDividerEl(),
-      // Description
-      React.createElement('div',{style:{flex:1,fontSize:descFs+'px',color:'#1e1508',lineHeight:'1.3',overflow:'hidden'}},desc0),
+      // Description (parsed paragraphs)
+      React.createElement('div',{style:{flex:1,overflow:'hidden'}}, ...descElements),
       // Materials footer
       hasMat&&matText&&React.createElement('div',{style:{borderTop:'0.5px solid #c8b490',paddingTop:'2px',fontSize:'7px',color:'#7a5a28',fontStyle:'italic',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:'2px'}},'\u2697 '+matText)
     )
