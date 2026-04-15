@@ -53,6 +53,7 @@ body {
 .spell-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; gap: 12px; -webkit-tap-highlight-color: transparent; transition: background 0.1s; }
 @media (hover: hover) { .spell-row:hover { background: var(--bg3); } }
 .spell-row:active { background: var(--bg3); }
+.cd-filter-bar::-webkit-scrollbar { display: none; }
 .spell-row.selected { background: var(--accent-bg); border-left: 2px solid var(--accent); padding-left: 14px; }
 .level-badge { width: 32px; height: 32px; border-radius: 50%; background: var(--bg3); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--text2); flex-shrink: 0; } .add-spell-btn { width: 30px; height: 30px; border-radius: 50%; background: transparent; border: 2px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 300; color: var(--accent); flex-shrink: 0; cursor: pointer; line-height: 1; -webkit-tap-highlight-color: transparent; transition: background 0.12s; } .add-spell-btn:hover { background: var(--accent-bg); }
 .spell-info { flex: 1; min-width: 0; }
@@ -1350,7 +1351,7 @@ function CharacterDetail({character, onBack, onUpdate}) {
         React.createElement('div',{style:{display:'flex',background:'#1a3a5c',borderTop:'1px solid rgba(255,255,255,0.1)'}},
           ['Known','Prepared','Class'].map(t=>React.createElement('button',{key:t,onClick:()=>setSubTab(t.toLowerCase()),style:{flex:1,padding:'12px',background:'transparent',border:'none',borderBottom:subTab===t.toLowerCase()?'2px solid #fff':'2px solid transparent',color:subTab===t.toLowerCase()?'#fff':'rgba(255,255,255,0.6)',fontSize:'14px',fontWeight:600,cursor:'pointer',fontFamily:'Inter,sans-serif'}},t))
         ),
-        cdFilterOpen&&React.createElement('div',{style:{background:'var(--bg2)',borderBottom:'1px solid var(--border)',padding:'8px 12px',display:'flex',flexWrap:'wrap',gap:'6px',alignItems:'center',position:'relative'}},
+        cdFilterOpen&&React.createElement('div',{className:'cd-filter-bar',style:{background:'var(--bg2)',borderBottom:'1px solid var(--border)',padding:'8px 12px',display:'flex',flexWrap:'nowrap',gap:'6px',alignItems:'center',position:'relative',overflowX:'auto',WebkitOverflowScrolling:'touch',scrollbarWidth:'none',msOverflowStyle:'none'}},
           (cdDmgOpen||cdTagOpen)&&React.createElement('div',{style:{position:'fixed',inset:0,zIndex:25},onClick:()=>{setCdDmgOpen(false);setCdTagOpen(false);}}),
           React.createElement('button',{className:`chip${cdConc==='yes'?' on':''}`,onClick:()=>setCdConc(c=>c==='yes'?'':'yes')},'✓ Concentration'),
           React.createElement('button',{className:`chip${cdConc==='no'?' on':''}`,onClick:()=>setCdConc(c=>c==='no'?'':'no')},'✗ Concentration'),
