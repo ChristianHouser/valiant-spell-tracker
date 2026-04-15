@@ -2935,12 +2935,13 @@ function PrintCardsModal({ onClose, filtered, allSpells }) {
 // TUTORIAL
 // ══════════════════════════════════════════════════════════════
 const TUTORIAL_STEPS = [
-  {icon:'✦', title:'Browse Spells', desc:'Use the Spells tab to search all ToV spells. Filter by class, level, tradition, school, components, and more.'},
-  {icon:'📖', title:'Spell Details', desc:'Tap any spell row to see its full details — casting time, range, components, duration, and description.'},
-  {icon:'+', title:'Add to Character', desc:'Tap the + button on any spell row or inside a spell\'s detail view to add it to one of your characters\' Known Spells.'},
-  {icon:'⚔', title:'Characters', desc:'Switch to the Characters tab to create characters. Each character tracks class, level, race, and subclass.'},
-  {icon:'◉', title:'Spell Slots & Spells', desc:'Open a character to track used spell slots each session. Switch between Known and Prepared spell tabs.'},
-  {icon:'⚙', title:'Settings', desc:'Toggle Light Theme in Settings, or view app info in About. Your characters are saved locally in your browser.'},
+  {icon:'✦', title:'Browse Spells', desc:'Use the Spells tab to search the full ToV spell list. On mobile, open filters from the top-right button; on desktop, use the sidebar or filter drawer.'},
+  {icon:'📖', title:'Spell Details', desc:'Tap or click any spell row to open the full spell detail view with casting time, range, components, duration, flavor text, and full rules text.'},
+  {icon:'+', title:'Add to Character', desc:'Use the + button from the spell list or detail view to add a spell to one of your characters\' Known Spells without leaving the page.'},
+  {icon:'⚔', title:'Characters', desc:'Create characters with class, race, levels, and subclass, then open them to track spell slots, known spells, prepared spells, rote spells, spell attack, and spell save DC.'},
+  {icon:'📚', title:'Homebrew Spells', desc:'Use the book icon from the Spells page to open Homebrew Spells. You can create custom spells, edit them later, and open them in the same detail layout as standard spells.'},
+  {icon:'🖨', title:'Print Spell Cards', desc:'Use the printer button on the Spells page to generate printable spell cards, choose layouts and sizes, preview the cards, and export a PDF.'},
+  {icon:'⚙', title:'Settings', desc:'Open Settings for Light Theme, this tutorial, and app info in About. Your characters, homebrew spells, and print settings are saved locally in your browser.'},
 ];
 
 function TutorialOverlay({onClose}) {
